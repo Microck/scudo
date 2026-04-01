@@ -3,7 +3,12 @@ Set-StrictMode -Version Latest
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $script:ScudoScriptPath = Join-Path -Path $projectRoot -ChildPath 'scudo.ps1'
 $script:ScudoScriptText = Get-Content -Path $script:ScudoScriptPath -Raw
-$script:ScudoVersion = ([regex]::Match($script:ScudoScriptText, "\$script:ScudoVersion = '([^']+)'")).Groups[1].Value
+$versionMatch = [regex]::Match($script:ScudoScriptText, '\$script:ScudoVersion = ''([^'']+)''')
+if (-not $versionMatch.Success) {
+    throw 'Could not find the scripted Scudo version in scudo.ps1.'
+}
+
+$script:ScudoVersion = $versionMatch.Groups[1].Value
 $script:IsWindowsHost = $env:OS -eq 'Windows_NT'
 $script:ScudoShellPath = if ($script:IsWindowsHost -and (Get-Command -Name 'powershell.exe' -ErrorAction SilentlyContinue)) {
     (Get-Command -Name 'powershell.exe' -ErrorAction Stop).Source

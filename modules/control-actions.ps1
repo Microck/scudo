@@ -1041,7 +1041,7 @@ function Get-ScudoStatusWingetPackage {
         return New-ScudoStatus -State $state -Summary $summary -BeforeValue $output.Trim()
     }
     catch {
-        return New-ScudoStatus -State 'error' -Summary "Failed to query $Title: $($_.Exception.Message)" -Supported $false
+        return New-ScudoStatus -State 'error' -Summary "Failed to query ${Title}: $($_.Exception.Message)" -Supported $false
     }
 }
 
