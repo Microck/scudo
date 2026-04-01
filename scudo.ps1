@@ -140,7 +140,8 @@ function Get-ScudoReportEntries {
     $controls = Get-ScudoControlCatalog
     $statusMap = Get-ScudoStatusMap
 
-    return foreach ($control in $controls) {
+    return @(
+        foreach ($control in $controls) {
         [pscustomobject]@{
             id             = $control.Id
             title          = $control.Title
@@ -152,7 +153,8 @@ function Get-ScudoReportEntries {
             guidance       = $control.Guidance
             status         = $statusMap[$control.Id]
         }
-    }
+        }
+    )
 }
 
 function Show-ScudoMenu {

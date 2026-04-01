@@ -1,9 +1,8 @@
 Set-StrictMode -Version Latest
 
-$projectRoot = Split-Path -Parent $PSScriptRoot
-
 Describe 'scudo control catalog' {
     BeforeAll {
+        $projectRoot = Split-Path -Parent $PSScriptRoot
         . (Join-Path -Path $projectRoot -ChildPath 'modules/control-actions.ps1')
         . (Join-Path -Path $projectRoot -ChildPath 'modules/safety.ps1')
         . (Join-Path -Path $projectRoot -ChildPath 'modules/control-catalog.ps1')
@@ -89,6 +88,7 @@ Describe 'scudo control catalog' {
 
 Describe 'scudo reporting' {
     BeforeAll {
+        $projectRoot = Split-Path -Parent $PSScriptRoot
         . (Join-Path -Path $projectRoot -ChildPath 'modules/control-actions.ps1')
         . (Join-Path -Path $projectRoot -ChildPath 'modules/safety.ps1')
         . (Join-Path -Path $projectRoot -ChildPath 'modules/control-catalog.ps1')
