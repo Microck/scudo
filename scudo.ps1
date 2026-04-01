@@ -57,6 +57,12 @@ function Get-ScudoParsedArguments {
             '--help' {
                 $parsed.Help = $true
             }
+            '-help' {
+                $parsed.Help = $true
+            }
+            '-h' {
+                $parsed.Help = $true
+            }
             '--version' {
                 $parsed.Version = $true
             }
@@ -666,6 +672,7 @@ function Show-ScudoHelp {
     Write-ScudoText 'scudo --action apply --control-id <id>' Gray
     Write-ScudoText 'scudo --action rollback --control-id <id>' Gray
     Write-ScudoText 'scudo --version' Gray
+    Write-ScudoText 'scudo -help' Gray
     Write-ScudoText 'scudo --help' Gray
 }
 

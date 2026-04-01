@@ -45,7 +45,7 @@ Describe 'scudo cli surface' {
     }
 
     It 'shows help without requiring Windows 11' {
-        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs '--help' 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs '-help' 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()

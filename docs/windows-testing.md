@@ -20,7 +20,7 @@ Workflow: `.github/workflows/windows-smoke.yml`
 What it validates:
 
 - Pester tests for catalog, reporting, and CLI surface
-- `scudo --help`
+- `scudo -help`
 - `scudo --version`
 - the explicit Windows 11 guardrail on the hosted Windows Server runner
 
@@ -82,7 +82,7 @@ The terminal host matters, but only after the OS is real Windows 11.
 ### Console Host
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --help
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 -- -help
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --version
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --check-all
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --export
@@ -111,7 +111,7 @@ Validate these behaviors:
 Run these first on a clean snapshot:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --help
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 -- -help
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --version
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --check-all
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --export

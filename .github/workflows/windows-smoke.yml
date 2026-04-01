@@ -46,7 +46,7 @@ jobs:
       - name: Verify help and version in Windows PowerShell
         shell: powershell
         run: |
-          $helpOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 -- --help 2>&1 | Out-String
+          $helpOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 -- -help 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0) {
             throw "scudo --help failed with exit code $LASTEXITCODE"
           }
