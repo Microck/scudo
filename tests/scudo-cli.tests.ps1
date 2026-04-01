@@ -10,15 +10,6 @@ if (-not $versionMatch.Success) {
 
 $script:ScudoVersion = $versionMatch.Groups[1].Value
 $script:IsWindowsHost = $env:OS -eq 'Windows_NT'
-$script:ScudoShellPath = if ($script:IsWindowsHost -and (Get-Command -Name 'powershell.exe' -ErrorAction SilentlyContinue)) {
-    (Get-Command -Name 'powershell.exe' -ErrorAction Stop).Source
-}
-elseif (Get-Command -Name 'pwsh' -ErrorAction SilentlyContinue) {
-    (Get-Command -Name 'pwsh' -ErrorAction Stop).Source
-}
-else {
-    throw 'No PowerShell executable is available for CLI tests.'
-}
 
 $script:IsWindows11 = $false
 if ($script:IsWindowsHost) {
@@ -31,17 +22,30 @@ if ($script:IsWindowsHost) {
     }
 }
 
-$script:ScudoShellArgs = @('-NoProfile')
-$shellLeaf = Split-Path -Leaf $script:ScudoShellPath
-if ($shellLeaf -ieq 'powershell.exe' -or $shellLeaf -ieq 'powershell') {
-    $script:ScudoShellArgs += @('-ExecutionPolicy', 'Bypass')
-}
-
-$script:ScudoShellArgs += @('-File', $script:ScudoScriptPath)
-
 Describe 'scudo cli surface' {
+    BeforeAll {
+        $script:RuntimeScudoScriptPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'scudo.ps1'
+        $script:RuntimeScudoShellPath = if ($env:OS -eq 'Windows_NT' -and (Get-Command -Name 'powershell.exe' -ErrorAction SilentlyContinue)) {
+            (Get-Command -Name 'powershell.exe' -ErrorAction Stop).Source
+        }
+        elseif (Get-Command -Name 'pwsh' -ErrorAction SilentlyContinue) {
+            (Get-Command -Name 'pwsh' -ErrorAction Stop).Source
+        }
+        else {
+            throw 'No PowerShell executable is available for CLI tests.'
+        }
+
+        $script:RuntimeScudoShellArgs = @('-NoProfile')
+        $shellLeaf = Split-Path -Leaf $script:RuntimeScudoShellPath
+        if ($shellLeaf -ieq 'powershell.exe' -or $shellLeaf -ieq 'powershell') {
+            $script:RuntimeScudoShellArgs += @('-ExecutionPolicy', 'Bypass')
+        }
+
+        $script:RuntimeScudoShellArgs += @('-File', $script:RuntimeScudoScriptPath)
+    }
+
     It 'shows help without requiring Windows 11' {
-        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--help' 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs '--help' 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()
@@ -53,7 +57,7 @@ Describe 'scudo cli surface' {
     }
 
     It 'prints the scripted version without requiring Windows 11' {
-        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--version' 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs '--version' 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()
@@ -65,8 +69,29 @@ Describe 'scudo cli surface' {
 }
 
 Describe 'scudo platform guardrails' {
+    BeforeAll {
+        $script:RuntimeScudoScriptPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'scudo.ps1'
+        $script:RuntimeScudoShellPath = if ($env:OS -eq 'Windows_NT' -and (Get-Command -Name 'powershell.exe' -ErrorAction SilentlyContinue)) {
+            (Get-Command -Name 'powershell.exe' -ErrorAction Stop).Source
+        }
+        elseif (Get-Command -Name 'pwsh' -ErrorAction SilentlyContinue) {
+            (Get-Command -Name 'pwsh' -ErrorAction Stop).Source
+        }
+        else {
+            throw 'No PowerShell executable is available for CLI tests.'
+        }
+
+        $script:RuntimeScudoShellArgs = @('-NoProfile')
+        $shellLeaf = Split-Path -Leaf $script:RuntimeScudoShellPath
+        if ($shellLeaf -ieq 'powershell.exe' -or $shellLeaf -ieq 'powershell') {
+            $script:RuntimeScudoShellArgs += @('-ExecutionPolicy', 'Bypass')
+        }
+
+        $script:RuntimeScudoShellArgs += @('-File', $script:RuntimeScudoScriptPath)
+    }
+
     It 'rejects non-Windows hosts explicitly' -Skip:$script:IsWindowsHost {
-        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--check-all' 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs '--check-all' 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()
@@ -77,7 +102,7 @@ Describe 'scudo platform guardrails' {
     }
 
     It 'rejects Windows hosts that are not Windows 11 explicitly' -Skip:(-not $script:IsWindowsHost -or $script:IsWindows11) {
-        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--check-all' 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs '--check-all' 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()

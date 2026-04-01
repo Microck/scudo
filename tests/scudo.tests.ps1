@@ -1,12 +1,15 @@
 Set-StrictMode -Version Latest
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-. (Join-Path -Path $projectRoot -ChildPath 'modules/control-actions.ps1')
-. (Join-Path -Path $projectRoot -ChildPath 'modules/safety.ps1')
-. (Join-Path -Path $projectRoot -ChildPath 'modules/control-catalog.ps1')
-. (Join-Path -Path $projectRoot -ChildPath 'modules/reporting.ps1')
 
 Describe 'scudo control catalog' {
+    BeforeAll {
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/control-actions.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/safety.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/control-catalog.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/reporting.ps1')
+    }
+
     It 'defines unique control ids' {
         $controls = Get-ScudoControlCatalog
         $controlIds = @($controls | Select-Object -ExpandProperty Id)
@@ -85,6 +88,13 @@ Describe 'scudo control catalog' {
 }
 
 Describe 'scudo reporting' {
+    BeforeAll {
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/control-actions.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/safety.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/control-catalog.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/reporting.ps1')
+    }
+
     It 'writes both report formats' {
         $tempRoot = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath ('scudo-tests-' + [guid]::NewGuid().ToString('N'))
         $results = @(
