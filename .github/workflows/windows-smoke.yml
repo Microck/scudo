@@ -1,0 +1,77 @@
+name: windows-smoke
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  pester:
+    name: pester-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-2025
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Ensure Pester is available
+        shell: pwsh
+        run: |
+          $pester = Get-Module -ListAvailable -Name Pester | Sort-Object Version -Descending | Select-Object -First 1
+          if ($null -eq $pester -or $pester.Version -lt [version]'5.0.0') {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+            Install-Module -Name Pester -MinimumVersion 5.0.0 -Scope CurrentUser -Force -SkipPublisherCheck
+          }
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          Invoke-Pester -Path ./tests -CI
+
+  windows-powershell-smoke:
+    name: windows-powershell-smoke
+    runs-on: windows-2025
+    needs: pester
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify help and version in Windows PowerShell
+        shell: powershell
+        run: |
+          $helpOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --help 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0) {
+            throw "scudo --help failed with exit code $LASTEXITCODE"
+          }
+
+          if ($helpOutput -notmatch 'scudo usage') {
+            throw 'scudo --help did not print the usage banner.'
+          }
+
+          $versionOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --version 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0) {
+            throw "scudo --version failed with exit code $LASTEXITCODE"
+          }
+
+          if (-not [regex]::IsMatch($versionOutput.Trim(), '^\d+\.\d+\.\d+$')) {
+            throw "scudo --version returned an unexpected value: $($versionOutput.Trim())"
+          }
+
+      - name: Verify hosted runner is blocked by the Windows 11 guardrail
+        shell: powershell
+        run: |
+          $guardrailOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scudo.ps1 --check-all 2>&1 | Out-String
+          if ($LASTEXITCODE -eq 0) {
+            throw 'Hosted Windows runner unexpectedly passed the Windows 11 requirement.'
+          }
+
+          if ($guardrailOutput -notmatch 'scudo only supports Windows 11\.') {
+            throw "Expected the Windows 11 guardrail message. Actual output:`n$guardrailOutput"
+          }
