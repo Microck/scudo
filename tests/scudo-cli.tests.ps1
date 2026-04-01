@@ -47,7 +47,7 @@ Describe 'scudo cli surface' {
     }
 
     It 'shows help without requiring Windows 11' {
-        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) --help" 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) '--help'" 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()
@@ -59,14 +59,15 @@ Describe 'scudo cli surface' {
     }
 
     It 'prints the scripted version without requiring Windows 11' {
-        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) --version" 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) '--version'" 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()
         }
+        $expectedVersion = ([regex]::Match((Get-Content -Path $script:RuntimeScudoScriptPath -Raw), '\$script:ScudoVersion = ''([^'']+)''')).Groups[1].Value
 
         $result.ExitCode | Should -Be 0
-        $result.Output.Trim() | Should -Be $script:RuntimeScudoVersion
+        $result.Output.Trim() | Should -Be $expectedVersion
     }
 }
 
@@ -94,7 +95,7 @@ Describe 'scudo platform guardrails' {
     }
 
     It 'rejects non-Windows hosts explicitly' -Skip:$script:IsWindowsHost {
-        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) --check-all" 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) '--check-all'" 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()
@@ -105,7 +106,7 @@ Describe 'scudo platform guardrails' {
     }
 
     It 'rejects Windows hosts that are not Windows 11 explicitly' -Skip:(-not $script:IsWindowsHost -or $script:IsWindows11) {
-        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) --check-all" 2>&1 | Out-String
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command "$($script:RuntimeScudoCommandPrefix) '--check-all'" 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
             Output   = $output.TrimEnd()
