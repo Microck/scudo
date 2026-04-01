@@ -67,8 +67,22 @@ jobs:
       - name: Verify hosted runner is blocked by the Windows 11 guardrail
         shell: powershell
         run: |
-          $guardrailOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scudo.ps1' '--check-all'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }" 2>&1 | Out-String
-          if ($LASTEXITCODE -eq 0) {
+          $guardrailStdout = Join-Path $env:RUNNER_TEMP 'scudo-guardrail.stdout.log'
+          $guardrailStderr = Join-Path $env:RUNNER_TEMP 'scudo-guardrail.stderr.log'
+          $guardrailProcess = Start-Process -FilePath 'powershell.exe' -ArgumentList @(
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-Command',
+            "& { & '.\scudo.ps1' '--check-all'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }"
+          ) -Wait -NoNewWindow -PassThru -RedirectStandardOutput $guardrailStdout -RedirectStandardError $guardrailStderr
+
+          $guardrailOutput = @(
+            if (Test-Path $guardrailStdout) { Get-Content -Path $guardrailStdout -Raw }
+            if (Test-Path $guardrailStderr) { Get-Content -Path $guardrailStderr -Raw }
+          ) -join ''
+
+          if ($guardrailProcess.ExitCode -eq 0) {
             throw 'Hosted Windows runner unexpectedly passed the Windows 11 requirement.'
           }
 
