@@ -17,6 +17,7 @@ $script:ScudoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 function Write-ScudoText {
     param(
         [Parameter(Mandatory)]
+        [AllowEmptyString()]
         [string]$Text,
 
         [ConsoleColor]$Color = [ConsoleColor]::Gray

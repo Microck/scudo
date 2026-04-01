@@ -44,7 +44,7 @@ Describe 'scudo cli surface' {
     }
 
     It 'shows help without requiring Windows 11' {
-        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '-help' }"
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '-help'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }"
         $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
@@ -57,7 +57,7 @@ Describe 'scudo cli surface' {
     }
 
     It 'prints the scripted version without requiring Windows 11' {
-        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--version' }"
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--version'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }"
         $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
@@ -91,7 +91,7 @@ Describe 'scudo platform guardrails' {
     }
 
     It 'rejects non-Windows hosts explicitly' -Skip:$script:IsWindowsHost {
-        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--check-all' }"
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--check-all'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }"
         $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
@@ -103,7 +103,7 @@ Describe 'scudo platform guardrails' {
     }
 
     It 'rejects Windows hosts that are not Windows 11 explicitly' -Skip:(-not $script:IsWindowsHost -or $script:IsWindows11) {
-        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--check-all' }"
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--check-all'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }"
         $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE

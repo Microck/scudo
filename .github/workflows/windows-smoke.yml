@@ -46,7 +46,7 @@ jobs:
       - name: Verify help and version in Windows PowerShell
         shell: powershell
         run: |
-          $helpOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scudo.ps1' '-help' }" 2>&1 | Out-String
+          $helpOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scudo.ps1' '-help'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }" 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0) {
             throw "scudo --help failed with exit code $LASTEXITCODE"
           }
@@ -55,7 +55,7 @@ jobs:
             throw 'scudo --help did not print the usage banner.'
           }
 
-          $versionOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scudo.ps1' '--version' }" 2>&1 | Out-String
+          $versionOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scudo.ps1' '--version'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }" 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0) {
             throw "scudo --version failed with exit code $LASTEXITCODE"
           }
@@ -67,7 +67,7 @@ jobs:
       - name: Verify hosted runner is blocked by the Windows 11 guardrail
         shell: powershell
         run: |
-          $guardrailOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scudo.ps1' '--check-all' }" 2>&1 | Out-String
+          $guardrailOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scudo.ps1' '--check-all'; if (`$null -ne `$LASTEXITCODE) { exit `$LASTEXITCODE }; if (`$?) { exit 0 }; exit 1 }" 2>&1 | Out-String
           if ($LASTEXITCODE -eq 0) {
             throw 'Hosted Windows runner unexpectedly passed the Windows 11 requirement.'
           }
