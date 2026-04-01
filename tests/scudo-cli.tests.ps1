@@ -22,33 +22,6 @@ if ($script:IsWindowsHost) {
     }
 }
 
-function Invoke-ScudoCli {
-    param(
-        [Parameter(Mandatory)]
-        [string]$ShellPath,
-
-        [Parameter(Mandatory)]
-        [string[]]$ShellArgs,
-
-        [Parameter(Mandatory)]
-        [string]$ScriptPath,
-
-        [string[]]$Arguments
-    )
-
-    $commandParts = @('&', ("'{0}'" -f $ScriptPath.Replace("'", "''")))
-    foreach ($argument in $Arguments) {
-        $commandParts += ("'{0}'" -f $argument.Replace("'", "''"))
-    }
-
-    $commandText = '& { ' + ($commandParts -join ' ') + ' }'
-    $output = & $ShellPath @ShellArgs -Command $commandText 2>&1 | Out-String
-    return [pscustomobject]@{
-        ExitCode = $LASTEXITCODE
-        Output   = $output.TrimEnd()
-    }
-}
-
 Describe 'scudo cli surface' {
     BeforeAll {
         $script:RuntimeScudoScriptPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'scudo.ps1'
@@ -71,7 +44,12 @@ Describe 'scudo cli surface' {
     }
 
     It 'shows help without requiring Windows 11' {
-        $result = Invoke-ScudoCli -ShellPath $script:RuntimeScudoShellPath -ShellArgs $script:RuntimeScudoShellArgs -ScriptPath $script:RuntimeScudoScriptPath -Arguments @('-help')
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '-help' }"
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
 
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'scudo usage'
@@ -79,7 +57,12 @@ Describe 'scudo cli surface' {
     }
 
     It 'prints the scripted version without requiring Windows 11' {
-        $result = Invoke-ScudoCli -ShellPath $script:RuntimeScudoShellPath -ShellArgs $script:RuntimeScudoShellArgs -ScriptPath $script:RuntimeScudoScriptPath -Arguments @('--version')
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--version' }"
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
         $expectedVersion = ([regex]::Match((Get-Content -Path $script:RuntimeScudoScriptPath -Raw), '\$script:ScudoVersion = ''([^'']+)''')).Groups[1].Value
 
         $result.ExitCode | Should -Be 0
@@ -108,14 +91,24 @@ Describe 'scudo platform guardrails' {
     }
 
     It 'rejects non-Windows hosts explicitly' -Skip:$script:IsWindowsHost {
-        $result = Invoke-ScudoCli -ShellPath $script:RuntimeScudoShellPath -ShellArgs $script:RuntimeScudoShellArgs -ScriptPath $script:RuntimeScudoScriptPath -Arguments @('--check-all')
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--check-all' }"
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
 
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match 'scudo only runs on Windows 11\.'
     }
 
     It 'rejects Windows hosts that are not Windows 11 explicitly' -Skip:(-not $script:IsWindowsHost -or $script:IsWindows11) {
-        $result = Invoke-ScudoCli -ShellPath $script:RuntimeScudoShellPath -ShellArgs $script:RuntimeScudoShellArgs -ScriptPath $script:RuntimeScudoScriptPath -Arguments @('--check-all')
+        $commandText = "& { & '$($script:RuntimeScudoScriptPath.Replace("'", "''"))' '--check-all' }"
+        $output = & $script:RuntimeScudoShellPath @script:RuntimeScudoShellArgs -Command $commandText 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
 
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match 'scudo only supports Windows 11\.'
