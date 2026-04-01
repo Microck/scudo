@@ -33,12 +33,23 @@ Describe 'scudo internal helpers' {
         $latestAfterRollback = Get-ScudoControlSnapshot -ControlId $control.Id -BaseDirectory $tempRoot
         $latestAfterRollback | Should -Be $null
     }
+
+    It 'prefers a Windows 11 candidate when multiple edition strings disagree' {
+        $selected = Get-ScudoPreferredWindowsEdition -Candidates @(
+            'Windows 10 IoT Enterprise LTSC 2024 Evaluation'
+            'Microsoft Windows 11 IoT Enterprise LTSC Evaluation'
+        )
+
+        $selected | Should -Be 'Microsoft Windows 11 IoT Enterprise LTSC Evaluation'
+    }
 }
 
 Describe 'scudo file-backed browser policies' {
     BeforeAll {
         $projectRoot = Split-Path -Parent $PSScriptRoot
         . (Join-Path -Path $projectRoot -ChildPath 'modules/control-actions.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/control-catalog.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/safety.ps1')
     }
 
     It 'merges Firefox policies without overwriting existing keys' {
@@ -78,6 +89,45 @@ Describe 'scudo file-backed browser policies' {
             $policyDocument.Data['policies']['ExtensionSettings']['{73a6fe31-595d-460b-a920-fcc0f8843232}']['installation_mode'] | Should -Be 'force_installed'
             $noScriptStatus.State | Should -Be 'already-configured'
             $sanitizeStatus.State | Should -Be 'already-configured'
+        }
+        finally {
+            $env:ProgramFiles = $existingProgramFiles
+            if ($null -eq $existingProgramFilesX86) {
+                Remove-Item Env:'ProgramFiles(x86)' -ErrorAction SilentlyContinue
+            }
+            else {
+                ${env:ProgramFiles(x86)} = $existingProgramFilesX86
+            }
+        }
+    }
+
+    It 'persists browser operation state without serializing full policy payloads' {
+        $tempRoot = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath ('scudo-firefox-state-' + [guid]::NewGuid().ToString('N'))
+        $programFiles = Join-Path -Path $tempRoot -ChildPath 'Program Files'
+        $firefoxRoot = Join-Path -Path $programFiles -ChildPath 'Mozilla Firefox'
+        $existingProgramFiles = $env:ProgramFiles
+        $existingProgramFilesX86 = ${env:ProgramFiles(x86)}
+        $stateRoot = Join-Path -Path $tempRoot -ChildPath 'state'
+        $control = $null
+
+        New-Item -Path $firefoxRoot -ItemType Directory -Force | Out-Null
+        New-Item -Path (Join-Path -Path $firefoxRoot -ChildPath 'firefox.exe') -ItemType File -Force | Out-Null
+
+        try {
+            $env:ProgramFiles = $programFiles
+            Remove-Item Env:'ProgramFiles(x86)' -ErrorAction SilentlyContinue
+            $control = Get-ScudoControlCatalog | Where-Object { $_.Id -eq 'browser.firefox-noscript' }
+
+            $beforeStatus = Get-ScudoStatusFirefoxNoScript
+            $result = Set-ScudoFirefoxNoScript
+            $operationPath = Save-ScudoOperationState -Control $control -Action 'apply' -BeforeStatus $beforeStatus -ResultStatus $result -BaseDirectory $stateRoot
+            $savedOperation = Get-Content -Path $operationPath -Raw | ConvertFrom-Json
+
+            $beforeStatus.BeforeValue | Should -Be $null
+            $result.BeforeValue | Should -Be (Join-Path -Path $firefoxRoot -ChildPath 'distribution\policies.json')
+            $result.AfterValue | Should -Be (Join-Path -Path $firefoxRoot -ChildPath 'distribution\policies.json')
+            Test-Path -Path $operationPath | Should -BeTrue
+            $savedOperation.controlId | Should -Be 'browser.firefox-noscript'
         }
         finally {
             $env:ProgramFiles = $existingProgramFiles

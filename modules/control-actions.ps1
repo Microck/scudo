@@ -42,18 +42,56 @@ function Test-ScudoWingetAvailable {
     return Test-ScudoCommandAvailable -Name 'winget'
 }
 
+function Get-ScudoPreferredWindowsEdition {
+    param(
+        [string[]]$Candidates
+    )
+
+    $values = @($Candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($values.Count -eq 0) {
+        return $null
+    }
+
+    $windows11Candidate = $values | Where-Object { $_ -match 'Windows 11' } | Select-Object -First 1
+    if (-not [string]::IsNullOrWhiteSpace($windows11Candidate)) {
+        return $windows11Candidate
+    }
+
+    return $values[0]
+}
+
 function Get-ScudoWindowsEdition {
     if (-not (Test-ScudoWindows)) {
         return $null
     }
 
+    $candidates = @()
+
     try {
         $productName = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'ProductName' -ErrorAction Stop
-        return [string]$productName
+        if (-not [string]::IsNullOrWhiteSpace($productName)) {
+            $candidates += [string]$productName
+        }
     }
     catch {
+    }
+
+    if (Test-ScudoCommandAvailable -Name 'Get-CimInstance') {
+        try {
+            $caption = (Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).Caption
+            if (-not [string]::IsNullOrWhiteSpace($caption)) {
+                $candidates += [string]$caption
+            }
+        }
+        catch {
+        }
+    }
+
+    if ($candidates.Count -eq 0) {
         return $null
     }
+
+    return Get-ScudoPreferredWindowsEdition -Candidates $candidates
 }
 
 function Test-ScudoWindows11 {
@@ -902,7 +940,7 @@ function Set-ScudoFirefoxPolicies {
     New-Item -Path $distributionPath -ItemType Directory -Force | Out-Null
 
     $policyPath = $policyDocument.Path
-    $beforeValue = $policyDocument.Raw
+    $beforeValue = $policyDocument.Path
     $policyObject = if ($policyDocument.Data) { $policyDocument.Data } else { @{} }
 
     if (-not $policyObject.ContainsKey('policies') -or $policyObject['policies'] -isnot [System.Collections.IDictionary]) {
@@ -932,9 +970,10 @@ function Set-ScudoFirefoxPolicies {
         }
     }
 
-    $policyObject | ConvertTo-Json -Depth 8 | Set-Content -Path $policyPath -Encoding UTF8
+    $serializedPolicy = $policyObject | ConvertTo-Json -Depth 8
+    $serializedPolicy | Set-Content -Path $policyPath -Encoding UTF8
 
-    return New-ScudoStatus -State 'already-configured' -Summary 'Wrote Firefox enterprise policies.' -BeforeValue $beforeValue -AfterValue (Get-Content -Path $policyPath -Raw)
+    return New-ScudoStatus -State 'already-configured' -Summary 'Wrote Firefox enterprise policies.' -BeforeValue $beforeValue -AfterValue $policyPath
 }
 
 function Get-ScudoStatusFirefoxNoScript {
@@ -963,7 +1002,7 @@ function Get-ScudoStatusFirefoxNoScript {
     $isConfigured = $entry -is [System.Collections.IDictionary] -and $entry['installation_mode'] -eq 'force_installed'
     $state = if ($isConfigured) { 'already-configured' } else { 'needs-action' }
     $summary = if ($isConfigured) { 'Firefox NoScript force-install policy is configured.' } else { 'Firefox NoScript force-install policy is not configured.' }
-    return New-ScudoStatus -State $state -Summary $summary -BeforeValue $policyObject
+    return New-ScudoStatus -State $state -Summary $summary -BeforeValue $policyDocument.Path
 }
 
 function Set-ScudoFirefoxNoScript {
@@ -993,7 +1032,7 @@ function Get-ScudoStatusFirefoxSanitizeOnShutdown {
     $isConfigured = $sanitize -is [System.Collections.IDictionary] -and $sanitize['Cookies'] -eq $true
     $state = if ($isConfigured) { 'already-configured' } else { 'needs-action' }
     $summary = if ($isConfigured) { 'Firefox shutdown sanitization policy is configured.' } else { 'Firefox shutdown sanitization policy is not configured.' }
-    return New-ScudoStatus -State $state -Summary $summary -BeforeValue $policyObject
+    return New-ScudoStatus -State $state -Summary $summary -BeforeValue $policyDocument.Path
 }
 
 function Set-ScudoFirefoxSanitizeOnShutdown {

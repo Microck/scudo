@@ -14,8 +14,8 @@ $script:IsWindowsHost = $env:OS -eq 'Windows_NT'
 $script:IsWindows11 = $false
 if ($script:IsWindowsHost) {
     try {
-        $productName = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'ProductName' -ErrorAction Stop
-        $script:IsWindows11 = $productName -match 'Windows 11'
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/control-actions.ps1')
+        $script:IsWindows11 = Test-ScudoWindows11
     }
     catch {
         $script:IsWindows11 = $false
