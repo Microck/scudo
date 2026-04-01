@@ -52,7 +52,7 @@ function ConvertTo-ScudoMarkdown {
 
     foreach ($state in 'already-configured', 'needs-action', 'pending-reboot', 'advisory', 'unsupported', 'error') {
         $count = @($Payload.results | Where-Object { $_.status.State -eq $state }).Count
-        $lines.Add("- $state: $count")
+        $lines.Add(('- {0}: {1}' -f $state, $count))
     }
 
     $lines.Add('')
@@ -67,22 +67,22 @@ function ConvertTo-ScudoMarkdown {
 
         $lines.Add("### $($entry.title)")
         $lines.Add('')
-        $lines.Add("- id: `$($entry.id)`")
-        $lines.Add("- kind: `$($entry.kind)`")
-        $lines.Add("- state: `$($entry.status.State)`")
-        $lines.Add("- rollback-supported: `$($rollbackSupported)`")
+        $lines.Add(('- id: `{0}`' -f $entry.id))
+        $lines.Add(('- kind: `{0}`' -f $entry.kind))
+        $lines.Add(('- state: `{0}`' -f $entry.status.State))
+        $lines.Add(('- rollback-supported: `{0}`' -f $rollbackSupported))
         $lines.Add("- summary: $($entry.status.Summary)")
-        $lines.Add("- requires-admin: `$($entry.requiresAdmin)`")
-        $lines.Add("- requires-reboot: `$($entry.requiresReboot)`")
+        $lines.Add(('- requires-admin: `{0}`' -f $entry.requiresAdmin))
+        $lines.Add(('- requires-reboot: `{0}`' -f $entry.requiresReboot))
 
         if ($null -ne $entry.status.BeforeValue) {
             $beforeJson = $entry.status.BeforeValue | ConvertTo-Json -Depth 6 -Compress
-            $lines.Add("- before: `$beforeJson`")
+            $lines.Add(('- before: `{0}`' -f $beforeJson))
         }
 
         if ($null -ne $entry.status.AfterValue) {
             $afterJson = $entry.status.AfterValue | ConvertTo-Json -Depth 6 -Compress
-            $lines.Add("- after: `$afterJson`")
+            $lines.Add(('- after: `{0}`' -f $afterJson))
         }
 
         if ($entry.status.Notes.Count -gt 0) {

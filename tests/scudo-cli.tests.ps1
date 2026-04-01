@@ -31,31 +31,21 @@ if ($script:IsWindowsHost) {
     }
 }
 
-function Invoke-ScudoCli {
-    param(
-        [string[]]$Arguments = @()
-    )
-
-    $shellArgs = @('-NoProfile')
-    $shellLeaf = Split-Path -Leaf $script:ScudoShellPath
-    if ($shellLeaf -ieq 'powershell.exe' -or $shellLeaf -ieq 'powershell') {
-        $shellArgs += @('-ExecutionPolicy', 'Bypass')
-    }
-
-    $shellArgs += @('-File', $script:ScudoScriptPath)
-    $shellArgs += $Arguments
-
-    $output = & $script:ScudoShellPath @shellArgs 2>&1 | Out-String
-
-    return [pscustomobject]@{
-        ExitCode = $LASTEXITCODE
-        Output   = $output.TrimEnd()
-    }
+$script:ScudoShellArgs = @('-NoProfile')
+$shellLeaf = Split-Path -Leaf $script:ScudoShellPath
+if ($shellLeaf -ieq 'powershell.exe' -or $shellLeaf -ieq 'powershell') {
+    $script:ScudoShellArgs += @('-ExecutionPolicy', 'Bypass')
 }
+
+$script:ScudoShellArgs += @('-File', $script:ScudoScriptPath)
 
 Describe 'scudo cli surface' {
     It 'shows help without requiring Windows 11' {
-        $result = Invoke-ScudoCli -Arguments @('--help')
+        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--help' 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
 
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'scudo usage'
@@ -63,7 +53,11 @@ Describe 'scudo cli surface' {
     }
 
     It 'prints the scripted version without requiring Windows 11' {
-        $result = Invoke-ScudoCli -Arguments @('--version')
+        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--version' 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
 
         $result.ExitCode | Should -Be 0
         $result.Output.Trim() | Should -Be $script:ScudoVersion
@@ -72,14 +66,22 @@ Describe 'scudo cli surface' {
 
 Describe 'scudo platform guardrails' {
     It 'rejects non-Windows hosts explicitly' -Skip:$script:IsWindowsHost {
-        $result = Invoke-ScudoCli -Arguments @('--check-all')
+        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--check-all' 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
 
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match 'scudo only runs on Windows 11\.'
     }
 
     It 'rejects Windows hosts that are not Windows 11 explicitly' -Skip:(-not $script:IsWindowsHost -or $script:IsWindows11) {
-        $result = Invoke-ScudoCli -Arguments @('--check-all')
+        $output = & $script:ScudoShellPath @script:ScudoShellArgs '--check-all' 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
 
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match 'scudo only supports Windows 11\.'
