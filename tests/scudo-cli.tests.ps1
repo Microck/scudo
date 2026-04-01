@@ -114,3 +114,20 @@ Describe 'scudo platform guardrails' {
         $result.Output | Should -Match 'scudo only supports Windows 11\.'
     }
 }
+
+Describe 'scudo Windows launchers' {
+    BeforeAll {
+        $script:RuntimeScudoCmdPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'scudo.cmd'
+    }
+
+    It 'shows help through the cmd launcher' -Skip:(-not $script:IsWindowsHost) {
+        $output = & cmd.exe /d /c ('""{0}" -help"' -f $script:RuntimeScudoCmdPath) 2>&1 | Out-String
+        $result = [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output.TrimEnd()
+        }
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'scudo usage'
+    }
+}

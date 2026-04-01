@@ -156,10 +156,14 @@ function Restore-ScudoRegistryDword {
 }
 
 function Get-ScudoSimpleWallExecutablePath {
-    $candidates = @(
-        (Join-Path -Path ${env:ProgramFiles} -ChildPath 'simplewall\simplewall.exe'),
-        (Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath 'simplewall\simplewall.exe')
+    $roots = @(
+        ${env:ProgramFiles},
+        ${env:ProgramFiles(x86)}
     ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+    $candidates = foreach ($root in $roots) {
+        Join-Path -Path $root -ChildPath 'simplewall\simplewall.exe'
+    }
 
     foreach ($candidate in $candidates) {
         if (Test-Path -Path $candidate) {
@@ -171,10 +175,14 @@ function Get-ScudoSimpleWallExecutablePath {
 }
 
 function Get-ScudoFirefoxInstallPath {
-    $candidates = @(
-        (Join-Path -Path ${env:ProgramFiles} -ChildPath 'Mozilla Firefox'),
-        (Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath 'Mozilla Firefox')
+    $roots = @(
+        ${env:ProgramFiles},
+        ${env:ProgramFiles(x86)}
     ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+    $candidates = foreach ($root in $roots) {
+        Join-Path -Path $root -ChildPath 'Mozilla Firefox'
+    }
 
     foreach ($candidate in $candidates) {
         if (Test-Path -Path (Join-Path -Path $candidate -ChildPath 'firefox.exe')) {
@@ -279,6 +287,10 @@ function Set-ScudoAsrRule {
 }
 
 function Get-ScudoStatusMemoryIntegrity {
+    if (-not (Test-ScudoWindows)) {
+        return New-ScudoStatus -State 'unsupported' -Summary 'Memory integrity checks are only available on Windows.' -Supported $false
+    }
+
     $path = 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity'
     $enabled = Get-ScudoRegistryDword -Path $path -Name 'Enabled'
     $isEnabled = $enabled -eq 1
@@ -297,6 +309,10 @@ function Set-ScudoMemoryIntegrity {
 }
 
 function Get-ScudoStatusDriverBlocklist {
+    if (-not (Test-ScudoWindows)) {
+        return New-ScudoStatus -State 'unsupported' -Summary 'Vulnerable driver blocklist checks are only available on Windows.' -Supported $false
+    }
+
     $path = 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config'
     $enabled = Get-ScudoRegistryDword -Path $path -Name 'VulnerableDriverBlocklistEnable'
     $isEnabled = $enabled -eq 1
@@ -391,6 +407,10 @@ function Get-ScudoServiceControlStatus {
         [string]$ServiceName
     )
 
+    if (-not (Test-ScudoCommandAvailable -Name 'Get-Service')) {
+        return New-ScudoStatus -State 'unsupported' -Summary "Service control cmdlets are unavailable, so $ServiceName cannot be queried." -Supported $false
+    }
+
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($null -eq $service) {
         return New-ScudoStatus -State 'unsupported' -Summary "$ServiceName is unavailable on this system." -Supported $false
@@ -479,6 +499,10 @@ function Set-ScudoPrintSpoolerDisabled {
 }
 
 function Get-ScudoStatusDeviceInstallRestriction {
+    if (-not (Test-ScudoWindows)) {
+        return New-ScudoStatus -State 'unsupported' -Summary 'Device installation policy checks are only available on Windows.' -Supported $false
+    }
+
     $path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions'
     $enabled = Get-ScudoRegistryDword -Path $path -Name 'DenyUnspecified'
     $isEnabled = $enabled -eq 1
@@ -620,6 +644,10 @@ function Get-ScudoStatusSimpleWallGuidance {
 }
 
 function Get-ScudoStatusTelemetryPolicy {
+    if (-not (Test-ScudoWindows)) {
+        return New-ScudoStatus -State 'unsupported' -Summary 'Telemetry policy checks are only available on Windows.' -Supported $false
+    }
+
     $path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
     $allowTelemetry = Get-ScudoRegistryDword -Path $path -Name 'AllowTelemetry'
     $state = if ($allowTelemetry -in @(0, 1)) { 'already-configured' } else { 'needs-action' }
@@ -662,6 +690,10 @@ function Restore-ScudoTelemetryPolicy {
 }
 
 function Get-ScudoStatusTelemetryServices {
+    if (-not (Test-ScudoCommandAvailable -Name 'Get-Service')) {
+        return New-ScudoStatus -State 'unsupported' -Summary 'Service control cmdlets are unavailable, so telemetry services cannot be queried.' -Supported $false
+    }
+
     $serviceNames = @('DiagTrack', 'dmwappushservice')
     $services = foreach ($serviceName in $serviceNames) {
         Get-Service -Name $serviceName -ErrorAction SilentlyContinue
@@ -789,9 +821,10 @@ function ConvertTo-ScudoHashtable {
         return $items
     }
 
-    if ($InputObject -is [psobject] -and $InputObject.PSObject.Properties.Count -gt 0) {
+    $properties = @($InputObject.PSObject.Properties)
+    if ($InputObject -is [psobject] -and $properties.Count -gt 0) {
         $dictionary = @{}
-        foreach ($property in $InputObject.PSObject.Properties) {
+        foreach ($property in $properties) {
             $dictionary[$property.Name] = ConvertTo-ScudoHashtable -InputObject $property.Value
         }
 
