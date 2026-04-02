@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/assets/scudo-logo.png" alt="scudo logo" width="100" height="100" />
+  <img src=".github/assets/scudo-logo.svg" alt="scudo logo" width="100" height="100" />
 
   <h1>scudo</h1>
 
@@ -15,7 +15,7 @@
 </div>
 
 <p align="center">
-  <img src=".github/assets/scudo-logo.png" alt="scudo mark" width="640" />
+  <img src=".github/assets/scudo-gui.png" alt="scudo gui" width="960" />
 </p>
 
 `scudo` is a hardener, not a debloater. it takes the usual windows 11 hardening steps, puts them behind a dead-simple menu, and keeps the tradeoffs visible so you can decide what to apply instead of blindly flipping every switch.
@@ -48,7 +48,7 @@ cd scudo
 
 ## what you get
 
-- a massgrave-style menu instead of a pile of scripts
+- a simple numbered menu instead of a pile of scripts
 - direct commands for checks, presets, and single-control actions
 - a winforms gui with the same control catalog and rationale
 - rollback snapshots for the settings that scudo can safely restore
