@@ -75,10 +75,10 @@ function Test-ScudoShouldLaunchGui {
         [Parameter(Mandatory)]
         [pscustomobject]$ParsedArguments,
 
-        [bool]$IsWindows = ($env:OS -eq 'Windows_NT')
+        [bool]$RunningOnWindows = ($env:OS -eq 'Windows_NT')
     )
 
-    if (-not $IsWindows) {
+    if (-not $RunningOnWindows) {
         return $false
     }
 

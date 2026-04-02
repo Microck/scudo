@@ -132,14 +132,14 @@ Describe 'scudo entrypoint parsing' {
     }
 
     It 'launches the GUI only when requested explicitly on Windows' {
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @()) -IsWindows $true) | Should -BeFalse
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -IsWindows $true) | Should -BeTrue
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--cli')) -IsWindows $true) | Should -BeFalse
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--check-all')) -IsWindows $true) | Should -BeFalse
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--preset', 'baseline')) -IsWindows $true) | Should -BeFalse
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--show', 'strict')) -IsWindows $true) | Should -BeFalse
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--action', 'apply', '--control-id', 'service.remote-registry.disabled')) -IsWindows $true) | Should -BeFalse
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -IsWindows $false) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @()) -RunningOnWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -RunningOnWindows $true) | Should -BeTrue
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--cli')) -RunningOnWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--check-all')) -RunningOnWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--preset', 'baseline')) -RunningOnWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--show', 'strict')) -RunningOnWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--action', 'apply', '--control-id', 'service.remote-registry.disabled')) -RunningOnWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -RunningOnWindows $false) | Should -BeFalse
     }
 }
 

@@ -136,7 +136,7 @@ function Get-ScudoControlMetadataMap {
             SortOrder          = 20
         }
         'driver-blocklist' = @{
-            WhatItDoes         = 'Enables Microsoft’s vulnerable driver blocklist.'
+            WhatItDoes         = 'Enables Microsoft''s vulnerable driver blocklist.'
             WhyApply           = 'Stops attackers from loading known-bad signed drivers to gain kernel-level leverage.'
             WhyNotApply        = 'Old hardware or niche software that relies on outdated drivers may stop working.'
             RecommendationTier = 'baseline'

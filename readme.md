@@ -50,7 +50,7 @@ cd scudo
 
 - a simple numbered menu instead of a pile of scripts
 - direct commands for checks, presets, and single-control actions
-- a winforms gui with the same control catalog and rationale
+- a WPF gui with the same control catalog and rationale
 - rollback snapshots for the settings that scudo can safely restore
 - optional app installs for bitwarden, helium, firefox, and simplewall
 

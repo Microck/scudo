@@ -1,12 +1,40 @@
 Set-StrictMode -Version Latest
 
-function Get-ScudoGuiColor {
+function Get-ScudoGuiThemeDefinition {
+    return [ordered]@{
+        BgMain              = '#2B3031'
+        BgSurface           = '#3B4243'
+        BgSurfaceSelected   = '#46504F'
+        TextPrimary         = '#EAD6B8'
+        TextMuted           = '#B8A78D'
+        Border              = '#546160'
+        BorderStrong        = '#81A884'
+        AccentPrimary       = '#81A884'
+        AccentPrimaryHover  = '#92BC95'
+        AccentPrimaryPressed = '#6E9071'
+        AccentDanger        = '#CA4433'
+        AccentDangerHover   = '#D85D4E'
+        AccentDangerPressed = '#B43E2F'
+        StatusConfigured    = '#81A884'
+        StatusAction        = '#EAD6B8'
+        StatusReboot        = '#C69C68'
+        StatusAdvisory      = '#A0BAA2'
+        StatusUnsupported   = '#8D8378'
+        StatusError         = '#CA4433'
+    }
+}
+
+function Get-ScudoGuiBrush {
     param(
         [Parameter(Mandatory)]
         [string]$Hex
     )
 
-    return [System.Drawing.ColorTranslator]::FromHtml("#$Hex")
+    $brush = [System.Windows.Media.BrushConverter]::new().ConvertFromString($Hex)
+    if ($brush -is [System.Windows.Freezable] -and $brush.CanFreeze) {
+        $brush.Freeze()
+    }
+    return $brush
 }
 
 function Get-ScudoGuiStatusText {
@@ -26,82 +54,216 @@ function Get-ScudoGuiStatusText {
     }
 }
 
-function Get-ScudoGuiStatusColor {
+function Get-ScudoGuiStateLabel {
     param(
         [Parameter(Mandatory)]
-        [pscustomobject]$Status,
-
-        [Parameter(Mandatory)]
-        [hashtable]$Palette
+        [pscustomobject]$Status
     )
 
     switch ($Status.State) {
-        'already-configured' { return $Palette.Success }
-        'needs-action' { return $Palette.Accent }
-        'pending-reboot' { return $Palette.Accent }
-        'advisory' { return $Palette.Accent }
-        'unsupported' { return $Palette.Muted }
-        'error' { return $Palette.Danger }
-        default { return $Palette.Accent }
+        'already-configured' { return 'Configured' }
+        'needs-action' { return 'Needs action' }
+        'pending-reboot' { return 'Needs reboot' }
+        'advisory' { return 'Guidance' }
+        'unsupported' { return 'Unsupported' }
+        'error' { return 'Error' }
+        default { return 'Unknown' }
     }
 }
 
-function Set-ScudoGuiButtonStyle {
+function Get-ScudoGuiStatusResourceKey {
     param(
         [Parameter(Mandatory)]
-        [System.Windows.Forms.Button]$Button,
-
-        [Parameter(Mandatory)]
-        [System.Drawing.Color]$BackColor,
-
-        [Parameter(Mandatory)]
-        [System.Drawing.Color]$ForeColor
+        [pscustomobject]$Status
     )
 
-    $Button.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-    $Button.FlatAppearance.BorderSize = 0
-    $Button.BackColor = $BackColor
-    $Button.ForeColor = $ForeColor
-    $Button.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $Button.Cursor = [System.Windows.Forms.Cursors]::Hand
+    switch ($Status.State) {
+        'already-configured' { return 'StatusConfiguredBrush' }
+        'needs-action' { return 'StatusActionBrush' }
+        'pending-reboot' { return 'StatusRebootBrush' }
+        'advisory' { return 'StatusAdvisoryBrush' }
+        'unsupported' { return 'StatusUnsupportedBrush' }
+        'error' { return 'StatusErrorBrush' }
+        default { return 'StatusActionBrush' }
+    }
 }
 
-function New-ScudoGuiLabel {
+function Get-ScudoGuiTierLabel {
     param(
         [Parameter(Mandatory)]
-        [AllowEmptyString()]
-        [string]$Text,
-
-        [Parameter(Mandatory)]
-        [int]$X,
-
-        [Parameter(Mandatory)]
-        [int]$Y,
-
-        [Parameter(Mandatory)]
-        [int]$Width,
-
-        [Parameter(Mandatory)]
-        [int]$Height,
-
-        [System.Drawing.Color]$ForeColor,
-        [float]$Size = 9,
-        [System.Drawing.FontStyle]$Style = [System.Drawing.FontStyle]::Regular
+        [string]$Tier
     )
 
-    $label = New-Object System.Windows.Forms.Label
-    $label.Text = $Text
-    $label.Location = New-Object System.Drawing.Point($X, $Y)
-    $label.Size = New-Object System.Drawing.Size($Width, $Height)
-    $label.ForeColor = $ForeColor
-    $label.Font = New-Object System.Drawing.Font('Segoe UI', $Size, $Style)
-    return $label
+    switch ($Tier) {
+        'baseline' { return 'baseline' }
+        'strict' { return 'strict' }
+        'guided' { return 'guided' }
+        'optional' { return 'optional' }
+        default { return $Tier }
+    }
+}
+
+function Get-ScudoGuiAutomationLabel {
+    param(
+        [Parameter(Mandatory)]
+        [string]$AutomationLevel
+    )
+
+    switch ($AutomationLevel) {
+        'automatic' { return 'automatic' }
+        'guided' { return 'guided input' }
+        'check-only' { return 'check only' }
+        'manual' { return 'manual step' }
+        default { return $AutomationLevel }
+    }
+}
+
+function Get-ScudoGuiSectionMap {
+    $sectionMap = @{}
+    foreach ($section in Get-ScudoSectionCatalog) {
+        $sectionMap[$section.Id] = $section
+    }
+
+    return $sectionMap
+}
+
+function Get-ScudoGuiSummaryCounts {
+    param(
+        [Parameter(Mandatory)]
+        [hashtable]$StatusMap
+    )
+
+    $counts = [ordered]@{
+        Configured   = 0
+        NeedsAction  = 0
+        PendingReboot = 0
+        Guidance     = 0
+        Unsupported  = 0
+        Errors       = 0
+    }
+
+    foreach ($status in $StatusMap.Values) {
+        switch ($status.State) {
+            'already-configured' { $counts.Configured += 1 }
+            'needs-action' { $counts.NeedsAction += 1 }
+            'pending-reboot' { $counts.PendingReboot += 1 }
+            'advisory' { $counts.Guidance += 1 }
+            'unsupported' { $counts.Unsupported += 1 }
+            'error' { $counts.Errors += 1 }
+        }
+    }
+
+    return [pscustomobject]$counts
+}
+
+function Get-ScudoGuiFilteredControls {
+    param(
+        [Parameter(Mandatory)]
+        [array]$Controls,
+
+        [string]$SectionId = 'all',
+        [string]$TierFilter = 'all',
+        [string]$SearchText
+    )
+
+    $needle = [string]$SearchText
+    $needle = $needle.Trim().ToLowerInvariant()
+
+    return @(
+        $Controls | Where-Object {
+            $control = $_
+
+            if ($SectionId -ne 'all' -and $control.SectionId -ne $SectionId) {
+                return $false
+            }
+
+            if ($TierFilter -ne 'all' -and $control.RecommendationTier -ne $TierFilter) {
+                return $false
+            }
+
+            if ([string]::IsNullOrWhiteSpace($needle)) {
+                return $true
+            }
+
+            $haystack = @(
+                $control.Id
+                $control.Title
+                $control.Category
+                $control.SectionId
+                $control.WhatItDoes
+                $control.WhyApply
+                $control.WhyNotApply
+                $control.RecommendationTier
+                $control.AutomationLevel
+            ) -join ' '
+
+            return $haystack.ToLowerInvariant().Contains($needle)
+        }
+    )
+}
+
+function Get-ScudoGuiSchemaPath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+
+    return Join-Path -Path $script:ScudoRoot -ChildPath ("schemas/{0}" -f $Name)
+}
+
+function Import-ScudoGuiWindow {
+    param(
+        [Parameter(Mandatory)]
+        [string]$SchemaPath
+    )
+
+    $xaml = Get-Content -Path $SchemaPath -Raw
+    $reader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml))
+    try {
+        return [System.Windows.Markup.XamlReader]::Load($reader)
+    }
+    finally {
+        $reader.Close()
+    }
+}
+
+function Set-ScudoGuiResources {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Window
+    )
+
+    $theme = Get-ScudoGuiThemeDefinition
+    foreach ($entry in $theme.GetEnumerator()) {
+        $Window.Resources["$($entry.Key)Brush"] = Get-ScudoGuiBrush -Hex $entry.Value
+    }
+}
+
+function Get-ScudoGuiPrimaryActionLabel {
+    param(
+        [Parameter(Mandatory)]
+        [pscustomobject]$Control
+    )
+
+    if ($Control.Id -eq 'account.create-standard-user') {
+        return 'Create user'
+    }
+
+    if ($Control.Kind -eq 'installable') {
+        return 'Install'
+    }
+
+    if ($Control.Id -eq 'firmware.reboot-to-uefi') {
+        return 'Reboot to firmware'
+    }
+
+    return 'Apply'
 }
 
 function Show-ScudoTextPrompt {
     param(
         [Parameter(Mandatory)]
-        [System.Windows.Forms.Form]$Owner,
+        [object]$Owner,
 
         [Parameter(Mandatory)]
         [string]$Title,
@@ -109,66 +271,78 @@ function Show-ScudoTextPrompt {
         [Parameter(Mandatory)]
         [string]$Prompt,
 
-        [Parameter(Mandatory)]
-        [hashtable]$Palette,
-
         [switch]$AsPassword
     )
 
-    $dialog = New-Object System.Windows.Forms.Form
-    $dialog.Text = $Title
-    $dialog.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
-    $dialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
-    $dialog.ClientSize = New-Object System.Drawing.Size(420, 160)
-    $dialog.BackColor = $Palette.Base
-    $dialog.ForeColor = $Palette.Accent
-    $dialog.MaximizeBox = $false
-    $dialog.MinimizeBox = $false
+    Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase | Out-Null
 
-    $promptLabel = New-ScudoGuiLabel -Text $Prompt -X 20 -Y 18 -Width 380 -Height 24 -ForeColor $Palette.Accent
-    $dialog.Controls.Add($promptLabel)
+    $window = Import-ScudoGuiWindow -SchemaPath (Get-ScudoGuiSchemaPath -Name 'scudo-prompt-window.xaml')
+    Set-ScudoGuiResources -Window $window
+    $window.Owner = $Owner
+    $window.Title = $Title
 
-    $inputBox = New-Object System.Windows.Forms.TextBox
-    $inputBox.Location = New-Object System.Drawing.Point(20, 54)
-    $inputBox.Size = New-Object System.Drawing.Size(380, 26)
-    $inputBox.BackColor = (Get-ScudoGuiColor -Hex '2B3031')
-    $inputBox.ForeColor = $Palette.Accent
-    $inputBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+    $titleText = $window.FindName('WindowTitleText')
+    $titleBar = $window.FindName('TitleBarDragZone')
+    $closeButton = $window.FindName('CloseButton')
+    $promptText = $window.FindName('PromptText')
+    $textInput = $window.FindName('TextInput')
+    $passwordInput = $window.FindName('PasswordInput')
+    $cancelButton = $window.FindName('CancelButton')
+    $confirmButton = $window.FindName('ConfirmButton')
+
+    $titleText.Text = $Title
+    $promptText.Text = $Prompt
+
     if ($AsPassword) {
-        $inputBox.UseSystemPasswordChar = $true
+        $textInput.Visibility = [System.Windows.Visibility]::Collapsed
+        $passwordInput.Visibility = [System.Windows.Visibility]::Visible
     }
-    $dialog.Controls.Add($inputBox)
+    else {
+        $textInput.Visibility = [System.Windows.Visibility]::Visible
+        $passwordInput.Visibility = [System.Windows.Visibility]::Collapsed
+    }
 
-    $okButton = New-Object System.Windows.Forms.Button
-    $okButton.Text = 'OK'
-    $okButton.Location = New-Object System.Drawing.Point(220, 108)
-    $okButton.Size = New-Object System.Drawing.Size(84, 32)
-    Set-ScudoGuiButtonStyle -Button $okButton -BackColor $Palette.Success -ForeColor $Palette.Base
-    $okButton.Add_Click({
-        $dialog.DialogResult = [System.Windows.Forms.DialogResult]::OK
-        $dialog.Close()
+    $titleBar.Add_MouseLeftButtonDown({
+        if ($_.ClickCount -ge 1) {
+            $window.DragMove()
+        }
     })
-    $dialog.Controls.Add($okButton)
 
-    $cancelButton = New-Object System.Windows.Forms.Button
-    $cancelButton.Text = 'Cancel'
-    $cancelButton.Location = New-Object System.Drawing.Point(316, 108)
-    $cancelButton.Size = New-Object System.Drawing.Size(84, 32)
-    Set-ScudoGuiButtonStyle -Button $cancelButton -BackColor (Get-ScudoGuiColor -Hex '2B3031') -ForeColor $Palette.Accent
+    $closeButton.Add_Click({
+        $window.DialogResult = $false
+        $window.Close()
+    })
+
     $cancelButton.Add_Click({
-        $dialog.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-        $dialog.Close()
+        $window.DialogResult = $false
+        $window.Close()
     })
-    $dialog.Controls.Add($cancelButton)
 
-    $dialog.AcceptButton = $okButton
-    $dialog.CancelButton = $cancelButton
+    $confirmButton.Add_Click({
+        $window.DialogResult = $true
+        $window.Close()
+    })
 
-    if ($dialog.ShowDialog($Owner) -eq [System.Windows.Forms.DialogResult]::OK) {
-        return $inputBox.Text
+    $window.Add_ContentRendered({
+        if ($AsPassword) {
+            $passwordInput.Focus() | Out-Null
+        }
+        else {
+            $textInput.Focus() | Out-Null
+            $textInput.SelectAll()
+        }
+    })
+
+    $accepted = $window.ShowDialog()
+    if ($accepted -ne $true) {
+        return $null
     }
 
-    return $null
+    if ($AsPassword) {
+        return $passwordInput.Password
+    }
+
+    return $textInput.Text
 }
 
 function Start-ScudoElevatedGui {
@@ -177,8 +351,19 @@ function Start-ScudoElevatedGui {
     }
 
     $scriptPath = Join-Path -Path $script:ScudoRoot -ChildPath 'scudo.ps1'
-    $argumentString = '-NoProfile -ExecutionPolicy Bypass -File "{0}" --gui' -f $scriptPath
+    $argumentString = '-NoProfile -STA -ExecutionPolicy Bypass -File "{0}" --gui' -f $scriptPath
     Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $argumentString | Out-Null
+}
+
+function Restart-ScudoGuiInSta {
+    if ([System.Threading.Thread]::CurrentThread.GetApartmentState() -eq [System.Threading.ApartmentState]::STA) {
+        return $false
+    }
+
+    $scriptPath = Join-Path -Path $script:ScudoRoot -ChildPath 'scudo.ps1'
+    $argumentString = '-NoProfile -STA -ExecutionPolicy Bypass -File "{0}" --gui' -f $scriptPath
+    Start-Process -FilePath 'powershell.exe' -ArgumentList $argumentString | Out-Null
+    return $true
 }
 
 function Show-ScudoGui {
@@ -186,225 +371,169 @@ function Show-ScudoGui {
         throw 'The Scudo GUI only runs on Windows.'
     }
 
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    [System.Windows.Forms.Application]::EnableVisualStyles()
-
-    $palette = @{
-        Base    = Get-ScudoGuiColor -Hex '353A3B'
-        Success = Get-ScudoGuiColor -Hex '77AA77'
-        Accent  = Get-ScudoGuiColor -Hex 'F4E3C1'
-        Danger  = Get-ScudoGuiColor -Hex 'C52713'
-        Surface = Get-ScudoGuiColor -Hex '2B3031'
-        Muted   = Get-ScudoGuiColor -Hex '9B927D'
+    if (Restart-ScudoGuiInSta) {
+        return
     }
 
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'scudo'
-    $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-    $form.ClientSize = New-Object System.Drawing.Size(1320, 820)
-    $form.MinimumSize = New-Object System.Drawing.Size(1180, 760)
-    $form.BackColor = $palette.Base
-    $form.ForeColor = $palette.Accent
-    $form.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+    Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Windows.Forms | Out-Null
 
-    $header = New-Object System.Windows.Forms.Panel
-    $header.Location = New-Object System.Drawing.Point(24, 20)
-    $header.Size = New-Object System.Drawing.Size(1272, 72)
-    $header.BackColor = $palette.Base
-    $form.Controls.Add($header)
+    $window = Import-ScudoGuiWindow -SchemaPath (Get-ScudoGuiSchemaPath -Name 'scudo-main-window.xaml')
+    Set-ScudoGuiResources -Window $window
 
-    $titleLabel = New-ScudoGuiLabel -Text 'scudo' -X 0 -Y 0 -Width 300 -Height 30 -ForeColor $palette.Accent -Size 22 -Style Bold
-    $subtitleLabel = New-ScudoGuiLabel -Text 'Windows 11 hardening. One control at a time.' -X 2 -Y 36 -Width 420 -Height 22 -ForeColor $palette.Muted -Size 9.5
-    $header.Controls.Add($titleLabel)
-    $header.Controls.Add($subtitleLabel)
+    $titleBar = $window.FindName('TitleBarDragZone')
+    $minimizeButton = $window.FindName('MinimizeButton')
+    $closeButton = $window.FindName('CloseButton')
+    $sessionBadge = $window.FindName('SessionBadge')
+    $sessionBadgeText = $window.FindName('SessionBadgeText')
 
-    $sessionLabel = New-ScudoGuiLabel -Text '' -X 950 -Y 10 -Width 300 -Height 24 -ForeColor $palette.Muted -Size 9
-    $header.Controls.Add($sessionLabel)
+    $configuredCountText = $window.FindName('ConfiguredCountText')
+    $needsActionCountText = $window.FindName('NeedsActionCountText')
+    $rebootCountText = $window.FindName('RebootCountText')
+    $guidanceCountText = $window.FindName('GuidanceCountText')
 
-    $toolbar = New-Object System.Windows.Forms.Panel
-    $toolbar.Location = New-Object System.Drawing.Point(24, 96)
-    $toolbar.Size = New-Object System.Drawing.Size(1272, 56)
-    $toolbar.BackColor = $palette.Base
-    $form.Controls.Add($toolbar)
+    $searchTextBox = $window.FindName('SearchTextBox')
+    $sectionComboBox = $window.FindName('SectionComboBox')
+    $trackComboBox = $window.FindName('TrackComboBox')
+    $refreshStatusButton = $window.FindName('RefreshStatusButton')
+    $exportReportButton = $window.FindName('ExportReportButton')
+    $openReportsButton = $window.FindName('OpenReportsButton')
+    $openCliButton = $window.FindName('OpenCliButton')
 
-    $categoryBox = New-Object System.Windows.Forms.ComboBox
-    $categoryBox.Location = New-Object System.Drawing.Point(0, 12)
-    $categoryBox.Size = New-Object System.Drawing.Size(220, 28)
-    $categoryBox.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-    $categoryBox.BackColor = $palette.Surface
-    $categoryBox.ForeColor = $palette.Accent
-    $toolbar.Controls.Add($categoryBox)
+    $controlCountText = $window.FindName('ControlCountText')
+    $controlListPanel = $window.FindName('ControlListPanel')
+    $emptyStateText = $window.FindName('EmptyStateText')
 
-    $refreshButton = New-Object System.Windows.Forms.Button
-    $refreshButton.Text = 'Refresh Status'
-    $refreshButton.Location = New-Object System.Drawing.Point(240, 10)
-    $refreshButton.Size = New-Object System.Drawing.Size(140, 34)
-    Set-ScudoGuiButtonStyle -Button $refreshButton -BackColor $palette.Accent -ForeColor $palette.Base
-    $toolbar.Controls.Add($refreshButton)
+    $detailTitleText = $window.FindName('DetailTitleText')
+    $detailMetaText = $window.FindName('DetailMetaText')
+    $detailStateBadge = $window.FindName('DetailStateBadge')
+    $detailStateText = $window.FindName('DetailStateText')
+    $detailSummaryText = $window.FindName('DetailSummaryText')
+    $whatItDoesText = $window.FindName('WhatItDoesText')
+    $whyApplyText = $window.FindName('WhyApplyText')
+    $whySkipText = $window.FindName('WhySkipText')
+    $rollbackNoteText = $window.FindName('RollbackNoteText')
+    $statusNotesText = $window.FindName('StatusNotesText')
 
-    $exportButton = New-Object System.Windows.Forms.Button
-    $exportButton.Text = 'Export Report'
-    $exportButton.Location = New-Object System.Drawing.Point(392, 10)
-    $exportButton.Size = New-Object System.Drawing.Size(140, 34)
-    Set-ScudoGuiButtonStyle -Button $exportButton -BackColor $palette.Surface -ForeColor $palette.Accent
-    $toolbar.Controls.Add($exportButton)
-
-    $openReportsButton = New-Object System.Windows.Forms.Button
-    $openReportsButton.Text = 'Open Reports'
-    $openReportsButton.Location = New-Object System.Drawing.Point(544, 10)
-    $openReportsButton.Size = New-Object System.Drawing.Size(140, 34)
-    Set-ScudoGuiButtonStyle -Button $openReportsButton -BackColor $palette.Surface -ForeColor $palette.Accent
-    $toolbar.Controls.Add($openReportsButton)
-
-    $cliButton = New-Object System.Windows.Forms.Button
-    $cliButton.Text = 'Open CLI'
-    $cliButton.Location = New-Object System.Drawing.Point(696, 10)
-    $cliButton.Size = New-Object System.Drawing.Size(120, 34)
-    Set-ScudoGuiButtonStyle -Button $cliButton -BackColor $palette.Surface -ForeColor $palette.Accent
-    $toolbar.Controls.Add($cliButton)
-
-    $cardsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
-    $cardsPanel.Location = New-Object System.Drawing.Point(24, 168)
-    $cardsPanel.Size = New-Object System.Drawing.Size(820, 620)
-    $cardsPanel.WrapContents = $false
-    $cardsPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::TopDown
-    $cardsPanel.AutoScroll = $true
-    $cardsPanel.BackColor = $palette.Base
-    $form.Controls.Add($cardsPanel)
-
-    $detailsPanel = New-Object System.Windows.Forms.Panel
-    $detailsPanel.Location = New-Object System.Drawing.Point(870, 168)
-    $detailsPanel.Size = New-Object System.Drawing.Size(426, 620)
-    $detailsPanel.BackColor = $palette.Surface
-    $detailsPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-    $form.Controls.Add($detailsPanel)
-
-    $detailTitle = New-ScudoGuiLabel -Text 'Select a control' -X 18 -Y 18 -Width 380 -Height 30 -ForeColor $palette.Accent -Size 18 -Style Bold
-    $detailMeta = New-ScudoGuiLabel -Text '' -X 20 -Y 54 -Width 380 -Height 22 -ForeColor $palette.Muted -Size 9
-    $detailState = New-ScudoGuiLabel -Text '' -X 20 -Y 84 -Width 380 -Height 24 -ForeColor $palette.Accent -Size 10 -Style Bold
-    $detailSummary = New-ScudoGuiLabel -Text '' -X 20 -Y 116 -Width 380 -Height 58 -ForeColor $palette.Accent -Size 9.5
-    $detailSummary.MaximumSize = New-Object System.Drawing.Size(380, 0)
-    $detailSummary.AutoSize = $true
-    $detailsPanel.Controls.Add($detailTitle)
-    $detailsPanel.Controls.Add($detailMeta)
-    $detailsPanel.Controls.Add($detailState)
-    $detailsPanel.Controls.Add($detailSummary)
-
-    $guidanceHeading = New-ScudoGuiLabel -Text 'What it does / why apply' -X 20 -Y 200 -Width 240 -Height 22 -ForeColor $palette.Muted -Size 9 -Style Bold
-    $detailsPanel.Controls.Add($guidanceHeading)
-
-    $guidanceBox = New-Object System.Windows.Forms.TextBox
-    $guidanceBox.Location = New-Object System.Drawing.Point(20, 226)
-    $guidanceBox.Size = New-Object System.Drawing.Size(380, 136)
-    $guidanceBox.Multiline = $true
-    $guidanceBox.ReadOnly = $true
-    $guidanceBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-    $guidanceBox.BackColor = $palette.Base
-    $guidanceBox.ForeColor = $palette.Accent
-    $guidanceBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-    $detailsPanel.Controls.Add($guidanceBox)
-
-    $notesHeading = New-ScudoGuiLabel -Text 'Why skip / rollback' -X 20 -Y 380 -Width 220 -Height 22 -ForeColor $palette.Muted -Size 9 -Style Bold
-    $detailsPanel.Controls.Add($notesHeading)
-
-    $notesBox = New-Object System.Windows.Forms.TextBox
-    $notesBox.Location = New-Object System.Drawing.Point(20, 406)
-    $notesBox.Size = New-Object System.Drawing.Size(380, 108)
-    $notesBox.Multiline = $true
-    $notesBox.ReadOnly = $true
-    $notesBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-    $notesBox.BackColor = $palette.Base
-    $notesBox.ForeColor = $palette.Accent
-    $notesBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-    $detailsPanel.Controls.Add($notesBox)
-
-    $refreshSelectedButton = New-Object System.Windows.Forms.Button
-    $refreshSelectedButton.Text = 'Refresh'
-    $refreshSelectedButton.Location = New-Object System.Drawing.Point(20, 546)
-    $refreshSelectedButton.Size = New-Object System.Drawing.Size(116, 40)
-    Set-ScudoGuiButtonStyle -Button $refreshSelectedButton -BackColor $palette.Accent -ForeColor $palette.Base
-    $detailsPanel.Controls.Add($refreshSelectedButton)
-
-    $applyButton = New-Object System.Windows.Forms.Button
-    $applyButton.Text = 'Apply'
-    $applyButton.Location = New-Object System.Drawing.Point(152, 546)
-    $applyButton.Size = New-Object System.Drawing.Size(116, 40)
-    Set-ScudoGuiButtonStyle -Button $applyButton -BackColor $palette.Success -ForeColor $palette.Base
-    $detailsPanel.Controls.Add($applyButton)
-
-    $rollbackButton = New-Object System.Windows.Forms.Button
-    $rollbackButton.Text = 'Rollback'
-    $rollbackButton.Location = New-Object System.Drawing.Point(284, 546)
-    $rollbackButton.Size = New-Object System.Drawing.Size(116, 40)
-    Set-ScudoGuiButtonStyle -Button $rollbackButton -BackColor $palette.Danger -ForeColor $palette.Accent
-    $detailsPanel.Controls.Add($rollbackButton)
-
-    $footerLabel = New-ScudoGuiLabel -Text 'Ready.' -X 24 -Y 794 -Width 1272 -Height 20 -ForeColor $palette.Muted -Size 9
-    $form.Controls.Add($footerLabel)
+    $refreshSelectedButton = $window.FindName('RefreshSelectedButton')
+    $applyButton = $window.FindName('ApplyButton')
+    $rollbackButton = $window.FindName('RollbackButton')
+    $statusBarText = $window.FindName('StatusBarText')
 
     $controls = @(Get-ScudoSortedControls)
+    $sectionMap = Get-ScudoGuiSectionMap
     $guiState = @{
         SelectedControlId = $null
         StatusMap         = @{}
         CardMap           = @{}
+        SectionId         = 'all'
+        TierFilter        = 'all'
+        SearchText        = ''
+    }
+
+    $setBusy = {
+        param([bool]$IsBusy)
+
+        if ($IsBusy) {
+            [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+        }
+        else {
+            [System.Windows.Input.Mouse]::OverrideCursor = $null
+        }
+    }
+
+    $setStatusBar = {
+        param([string]$Text)
+        $statusBarText.Text = $Text
+    }
+
+    $showMessage = {
+        param(
+            [string]$Message,
+            [string]$Title = 'scudo',
+            [System.Windows.MessageBoxButton]$Button = [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]$Icon = [System.Windows.MessageBoxImage]::Information
+        )
+
+        return [System.Windows.MessageBox]::Show($window, $Message, $Title, $Button, $Icon)
+    }
+
+    $applyCardStyle = {
+        param(
+            [hashtable]$CardRef,
+            [bool]$IsSelected
+        )
+
+        if ($IsSelected) {
+            $CardRef.Border.Background = $window.Resources['BgSurfaceSelectedBrush']
+            $CardRef.Border.BorderBrush = $window.Resources['BorderStrongBrush']
+            $CardRef.Title.Foreground = $window.Resources['TextPrimaryBrush']
+            $CardRef.Meta.Foreground = $window.Resources['AccentPrimaryBrush']
+            $CardRef.Summary.Foreground = $window.Resources['TextPrimaryBrush']
+            $CardRef.Chevron.Foreground = $window.Resources['AccentPrimaryBrush']
+        }
+        else {
+            $CardRef.Border.Background = $window.Resources['BgSurfaceBrush']
+            $CardRef.Border.BorderBrush = $window.Resources['BorderBrush']
+            $CardRef.Title.Foreground = $window.Resources['TextPrimaryBrush']
+            $CardRef.Meta.Foreground = $window.Resources['TextMutedBrush']
+            $CardRef.Summary.Foreground = $window.Resources['TextPrimaryBrush']
+            $CardRef.Chevron.Foreground = $window.Resources['TextMutedBrush']
+        }
     }
 
     $renderDetails = {
         if ([string]::IsNullOrWhiteSpace($guiState.SelectedControlId)) {
-            $detailTitle.Text = 'Select a control'
-            $detailMeta.Text = ''
-            $detailState.Text = ''
-            $detailSummary.Text = ''
-            $guidanceBox.Text = ''
-            $notesBox.Text = ''
-            $applyButton.Enabled = $false
-            $rollbackButton.Enabled = $false
-            $refreshSelectedButton.Enabled = $false
+            $detailTitleText.Text = 'Select a control'
+            $detailMetaText.Text = 'Search or filter on the left, then inspect the control here.'
+            $detailStateText.Text = 'No selection'
+            $detailStateBadge.Background = $window.Resources['StatusUnsupportedBrush']
+            $detailSummaryText.Text = 'Scudo keeps the hardening rationale visible before you apply anything.'
+            $whatItDoesText.Text = ''
+            $whyApplyText.Text = ''
+            $whySkipText.Text = ''
+            $rollbackNoteText.Text = ''
+            $statusNotesText.Text = ''
+            $refreshSelectedButton.IsEnabled = $false
+            $applyButton.IsEnabled = $false
+            $rollbackButton.IsEnabled = $false
+            $applyButton.Content = 'Apply'
             return
         }
 
         $control = $controls | Where-Object { $_.Id -eq $guiState.SelectedControlId } | Select-Object -First 1
         $status = $guiState.StatusMap[$guiState.SelectedControlId]
         $snapshot = if ($null -ne $control) { Get-ScudoControlSnapshot -ControlId $control.Id } else { $null }
+        if ($null -eq $control -or $null -eq $status) {
+            return
+        }
 
-        $detailTitle.Text = $control.Title
-        $detailMeta.Text = ('{0}  |  tier: {1}  |  {2}' -f $control.Category, $control.RecommendationTier, $control.AutomationLevel)
-        $detailState.Text = ('State: {0}' -f $status.Summary)
-        $detailState.ForeColor = Get-ScudoGuiStatusColor -Status $status -Palette $palette
-        $detailSummary.Text = $status.Summary
-        $guidanceBox.Text = @(
-            "What it does:"
-            $control.WhatItDoes
-            ''
-            "Why apply it:"
-            $control.WhyApply
-        ) -join [Environment]::NewLine
+        $section = $sectionMap[$control.SectionId]
+        $sectionTitle = if ($null -ne $section) { $section.Title } else { $control.SectionId }
+        $detailTitleText.Text = $control.Title
+        $detailMetaText.Text = ('{0} / {1} / {2} / {3}' -f $sectionTitle, $control.Category, (Get-ScudoGuiTierLabel -Tier $control.RecommendationTier), (Get-ScudoGuiAutomationLabel -AutomationLevel $control.AutomationLevel))
+        $detailStateText.Text = Get-ScudoGuiStateLabel -Status $status
+        $detailStateBadge.Background = $window.Resources[(Get-ScudoGuiStatusResourceKey -Status $status)]
+        $detailSummaryText.Text = $status.Summary
+        $whatItDoesText.Text = $control.WhatItDoes
+        $whyApplyText.Text = $control.WhyApply
+        $whySkipText.Text = $control.WhyNotApply
+        $rollbackNoteText.Text = $control.RollbackNote
+
         $statusNotes = @(
             @($status.Notes) |
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
         )
-        $notesLines = New-Object System.Collections.Generic.List[string]
-        $notesLines.Add('Why skip it:')
-        $notesLines.Add($control.WhyNotApply)
-        $notesLines.Add('')
-        $notesLines.Add(('Rollback: {0}' -f $control.RollbackNote))
-        $notesLines.Add(('Admin: {0}' -f $control.RequiresAdmin))
-        $notesLines.Add(('Reboot: {0}' -f $control.RequiresReboot))
         if (@($statusNotes).Count -gt 0) {
-            $notesLines.Add('')
-            $notesLines.Add('Status notes:')
-            foreach ($note in $statusNotes) {
-                $notesLines.Add("- $note")
-            }
+            $statusNotesText.Text = ($statusNotes | ForEach-Object { '- {0}' -f $_ }) -join [Environment]::NewLine
         }
-        $notesBox.Text = $notesLines -join [Environment]::NewLine
-        $refreshSelectedButton.Enabled = $true
+        else {
+            $statusNotesText.Text = 'No extra notes.'
+        }
 
-        $applyButton.Enabled = $control.Kind -in @('applyable', 'installable', 'special')
-        $applyButton.Text = if ($control.Id -eq 'account.create-standard-user') { 'Create User' } elseif ($control.Kind -eq 'installable') { 'Install' } else { 'Apply' }
-
-        $rollbackButton.Enabled = (Test-ScudoControlRollbackSupported -Control $control) -and $null -ne $snapshot
+        $refreshSelectedButton.IsEnabled = $true
+        $applyButton.IsEnabled = $control.Kind -in @('applyable', 'installable', 'special')
+        $applyButton.Content = Get-ScudoGuiPrimaryActionLabel -Control $control
+        $rollbackButton.IsEnabled = (Test-ScudoControlRollbackSupported -Control $control) -and $null -ne $snapshot
     }
 
     $selectControl = {
@@ -412,117 +541,212 @@ function Show-ScudoGui {
 
         $guiState.SelectedControlId = $ControlId
         foreach ($entry in $guiState.CardMap.GetEnumerator()) {
-            $panel = $entry.Value.Panel
-            $title = $entry.Value.Title
-            $meta = $entry.Value.Meta
-            $summary = $entry.Value.Summary
-            if ($entry.Key -eq $guiState.SelectedControlId) {
-                $panel.BackColor = $palette.Accent
-                $title.ForeColor = $palette.Base
-                $meta.ForeColor = $palette.Base
-                $summary.ForeColor = $palette.Base
-            }
-            else {
-                $panel.BackColor = $palette.Surface
-                $title.ForeColor = $palette.Accent
-                $meta.ForeColor = $palette.Muted
-                $summary.ForeColor = $palette.Accent
-            }
+            & $applyCardStyle $entry.Value ($entry.Key -eq $ControlId)
         }
 
         & $renderDetails
     }
 
-    $refreshList = {
-        $footerLabel.Text = 'Refreshing control state...'
-        $form.UseWaitCursor = $true
+    $newControlCard = {
+        param(
+            [pscustomobject]$Control,
+            [pscustomobject]$Status
+        )
+
+        $button = New-Object System.Windows.Controls.Button
+        $button.Style = $window.Resources['ControlCardButtonStyle']
+        $button.Tag = $Control.Id
+
+        $border = New-Object System.Windows.Controls.Border
+        $border.CornerRadius = [System.Windows.CornerRadius]::new(10)
+        $border.BorderThickness = [System.Windows.Thickness]::new(1)
+        $border.Padding = [System.Windows.Thickness]::new(14)
+        $border.Margin = [System.Windows.Thickness]::new(0, 0, 0, 10)
+        $border.Background = $window.Resources['BgSurfaceBrush']
+        $border.BorderBrush = $window.Resources['BorderBrush']
+
+        $grid = New-Object System.Windows.Controls.Grid
+        $null = $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::Auto }))
+        $null = $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star) }))
+        $null = $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::Auto }))
+
+        $badgeBorder = New-Object System.Windows.Controls.Border
+        $badgeBorder.Background = $window.Resources[(Get-ScudoGuiStatusResourceKey -Status $Status)]
+        $badgeBorder.CornerRadius = [System.Windows.CornerRadius]::new(999)
+        $badgeBorder.Padding = [System.Windows.Thickness]::new(10, 5, 10, 5)
+        $badgeBorder.Margin = [System.Windows.Thickness]::new(0, 4, 12, 0)
+        $badgeBorder.VerticalAlignment = [System.Windows.VerticalAlignment]::Top
+        [System.Windows.Controls.Grid]::SetColumn($badgeBorder, 0)
+
+        $badgeText = New-Object System.Windows.Controls.TextBlock
+        $badgeText.Text = Get-ScudoGuiStatusText -Status $Status
+        $badgeText.FontSize = 11
+        $badgeText.FontWeight = [System.Windows.FontWeights]::Bold
+        $badgeText.Foreground = $window.Resources['BgMainBrush']
+        $badgeBorder.Child = $badgeText
+
+        $contentStack = New-Object System.Windows.Controls.StackPanel
+        $contentStack.Orientation = [System.Windows.Controls.Orientation]::Vertical
+        [System.Windows.Controls.Grid]::SetColumn($contentStack, 1)
+
+        $title = New-Object System.Windows.Controls.TextBlock
+        $title.Text = $Control.Title
+        $title.FontSize = 16
+        $title.FontWeight = [System.Windows.FontWeights]::SemiBold
+        $title.Foreground = $window.Resources['TextPrimaryBrush']
+        $title.TextWrapping = [System.Windows.TextWrapping]::Wrap
+
+        $section = $sectionMap[$Control.SectionId]
+        $sectionTitle = if ($null -ne $section) { $section.Title } else { $Control.SectionId }
+
+        $meta = New-Object System.Windows.Controls.TextBlock
+        $meta.Text = ('{0} / {1} / {2}' -f $sectionTitle, (Get-ScudoGuiTierLabel -Tier $Control.RecommendationTier), (Get-ScudoGuiAutomationLabel -AutomationLevel $Control.AutomationLevel))
+        $meta.Margin = [System.Windows.Thickness]::new(0, 5, 0, 0)
+        $meta.FontSize = 12
+        $meta.Foreground = $window.Resources['TextMutedBrush']
+        $meta.TextWrapping = [System.Windows.TextWrapping]::Wrap
+
+        $summary = New-Object System.Windows.Controls.TextBlock
+        $summary.Text = $Status.Summary
+        $summary.Margin = [System.Windows.Thickness]::new(0, 7, 0, 0)
+        $summary.FontSize = 13
+        $summary.Foreground = $window.Resources['TextPrimaryBrush']
+        $summary.TextWrapping = [System.Windows.TextWrapping]::Wrap
+
+        $contentStack.Children.Add($title) | Out-Null
+        $contentStack.Children.Add($meta) | Out-Null
+        $contentStack.Children.Add($summary) | Out-Null
+
+        $chevron = New-Object System.Windows.Controls.TextBlock
+        $chevron.Text = '>'
+        $chevron.Margin = [System.Windows.Thickness]::new(12, 2, 0, 0)
+        $chevron.FontSize = 18
+        $chevron.Foreground = $window.Resources['TextMutedBrush']
+        $chevron.VerticalAlignment = [System.Windows.VerticalAlignment]::Top
+        [System.Windows.Controls.Grid]::SetColumn($chevron, 2)
+
+        $grid.Children.Add($badgeBorder) | Out-Null
+        $grid.Children.Add($contentStack) | Out-Null
+        $grid.Children.Add($chevron) | Out-Null
+        $border.Child = $grid
+        $button.Content = $border
+
+        $button.Add_Click({
+            param($sender, $args)
+            & $selectControl $sender.Tag
+        })
+
+        return @{
+            Button  = $button
+            Border  = $border
+            Title   = $title
+            Meta    = $meta
+            Summary = $summary
+            Chevron = $chevron
+        }
+    }
+
+    $renderSummary = {
+        $counts = Get-ScudoGuiSummaryCounts -StatusMap $guiState.StatusMap
+        $configuredCountText.Text = [string]$counts.Configured
+        $needsActionCountText.Text = [string]$counts.NeedsAction
+        $rebootCountText.Text = [string]$counts.PendingReboot
+        $guidanceCountText.Text = [string]$counts.Guidance
+    }
+
+    $renderControlList = {
+        $visibleControls = Get-ScudoGuiFilteredControls -Controls $controls -SectionId $guiState.SectionId -TierFilter $guiState.TierFilter -SearchText $guiState.SearchText
+        $controlListPanel.Children.Clear()
+        $guiState.CardMap = @{}
+
+        $controlCountText.Text = ('{0} controls' -f @($visibleControls).Count)
+        $emptyStateText.Visibility = if (@($visibleControls).Count -eq 0) {
+            [System.Windows.Visibility]::Visible
+        }
+        else {
+            [System.Windows.Visibility]::Collapsed
+        }
+
+        foreach ($control in $visibleControls) {
+            $card = & $newControlCard $control $guiState.StatusMap[$control.Id]
+            $controlListPanel.Children.Add($card.Button) | Out-Null
+            $guiState.CardMap[$control.Id] = $card
+        }
+
+        if (@($visibleControls).Count -eq 0) {
+            $guiState.SelectedControlId = $null
+            & $renderDetails
+            return
+        }
+
+        if ([string]::IsNullOrWhiteSpace($guiState.SelectedControlId) -or -not $guiState.CardMap.ContainsKey($guiState.SelectedControlId)) {
+            $guiState.SelectedControlId = $visibleControls[0].Id
+        }
+
+        & $selectControl $guiState.SelectedControlId
+    }
+
+    $refreshAll = {
+        & $setStatusBar 'Refreshing control state...'
+        & $setBusy $true
         try {
             $guiState.StatusMap = Get-ScudoStatusMap
-            $selectedCategory = [string]$categoryBox.SelectedItem
-            $cardsPanel.SuspendLayout()
-            $cardsPanel.Controls.Clear()
-            $guiState.CardMap = @{}
-
-            $visibleControls = @(
-                $controls | Where-Object {
-                    $selectedCategory -eq 'All categories' -or $_.Category -eq $selectedCategory
-                }
-            )
-
-            foreach ($control in $visibleControls) {
-                $status = $guiState.StatusMap[$control.Id]
-                $card = New-Object System.Windows.Forms.Panel
-                $card.Size = New-Object System.Drawing.Size(780, 82)
-                $card.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 12)
-                $card.BackColor = $palette.Surface
-                $card.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-                $card.Cursor = [System.Windows.Forms.Cursors]::Hand
-
-                $badge = New-Object System.Windows.Forms.Label
-                $badge.Text = Get-ScudoGuiStatusText -Status $status
-                $badge.Location = New-Object System.Drawing.Point(16, 16)
-                $badge.Size = New-Object System.Drawing.Size(88, 26)
-                $badge.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
-                $badge.BackColor = Get-ScudoGuiStatusColor -Status $status -Palette $palette
-                $badge.ForeColor = $palette.Base
-                $badge.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Bold)
-
-                $title = New-Object System.Windows.Forms.Label
-                $title.Text = $control.Title
-                $title.Location = New-Object System.Drawing.Point(122, 12)
-                $title.Size = New-Object System.Drawing.Size(620, 24)
-                $title.ForeColor = $palette.Accent
-                $title.Font = New-Object System.Drawing.Font('Segoe UI', 10.5, [System.Drawing.FontStyle]::Bold)
-
-                $meta = New-Object System.Windows.Forms.Label
-                $meta.Text = ('{0}  |  {1}  |  {2}' -f $control.Category, $control.RecommendationTier, $control.AutomationLevel)
-                $meta.Location = New-Object System.Drawing.Point(122, 38)
-                $meta.Size = New-Object System.Drawing.Size(620, 18)
-                $meta.ForeColor = $palette.Muted
-                $meta.Font = New-Object System.Drawing.Font('Segoe UI', 8.5)
-
-                $summary = New-Object System.Windows.Forms.Label
-                $summary.Text = $status.Summary
-                $summary.Location = New-Object System.Drawing.Point(122, 58)
-                $summary.Size = New-Object System.Drawing.Size(620, 18)
-                $summary.ForeColor = $palette.Accent
-                $summary.Font = New-Object System.Drawing.Font('Segoe UI', 8.5)
-
-                $controlId = $control.Id
-                $selectControlAction = $selectControl
-                $clickHandler = {
-                    $null = $selectControlAction.InvokeReturnAsIs($controlId)
-                }.GetNewClosure()
-
-                foreach ($element in @($card, $badge, $title, $meta, $summary)) {
-                    $element.Add_Click($clickHandler)
-                }
-
-                $card.Controls.Add($badge)
-                $card.Controls.Add($title)
-                $card.Controls.Add($meta)
-                $card.Controls.Add($summary)
-                $cardsPanel.Controls.Add($card)
-                $guiState.CardMap[$control.Id] = @{
-                    Panel   = $card
-                    Title   = $title
-                    Meta    = $meta
-                    Summary = $summary
-                }
-            }
-
-            $cardsPanel.ResumeLayout()
-
-            if ($null -eq $guiState.SelectedControlId -or -not $guiState.CardMap.ContainsKey($guiState.SelectedControlId)) {
-                $guiState.SelectedControlId = if (@($visibleControls).Count -gt 0) { $visibleControls[0].Id } else { $null }
-            }
-
-            & $selectControl $guiState.SelectedControlId
-            $footerLabel.Text = ('Loaded {0} controls.' -f @($visibleControls).Count)
+            & $renderSummary
+            & $renderControlList
+            & $setStatusBar ('Loaded {0} controls.' -f $controls.Count)
         }
         finally {
-            $form.UseWaitCursor = $false
+            & $setBusy $false
         }
+    }
+
+    $refreshSelected = {
+        if ([string]::IsNullOrWhiteSpace($guiState.SelectedControlId)) {
+            return
+        }
+
+        $control = $controls | Where-Object { $_.Id -eq $guiState.SelectedControlId } | Select-Object -First 1
+        if ($null -eq $control) {
+            return
+        }
+
+        & $setStatusBar ('Refreshing {0}...' -f $control.Title)
+        & $setBusy $true
+        try {
+            $guiState.StatusMap[$control.Id] = Invoke-ScudoControlDetection -Control $control
+            & $renderSummary
+            & $renderControlList
+            & $setStatusBar ('Refreshed {0}.' -f $control.Title)
+        }
+        finally {
+            & $setBusy $false
+        }
+    }
+
+    $exportReports = {
+        & $setStatusBar 'Exporting report...'
+        try {
+            $paths = Export-ScudoReport -Results (Get-ScudoReportEntries)
+            & $showMessage ("Markdown:`n{0}`n`nJSON:`n{1}" -f $paths.MarkdownPath, $paths.JsonPath) 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Information) | Out-Null
+            & $setStatusBar ('Exported report to {0}' -f $paths.MarkdownPath)
+        }
+        catch {
+            & $showMessage $_.Exception.Message 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Error) | Out-Null
+            & $setStatusBar 'Report export failed.'
+        }
+    }
+
+    $openReports = {
+        $reportDirectory = Get-ScudoReportDirectory
+        New-Item -Path $reportDirectory -ItemType Directory -Force | Out-Null
+        Start-Process -FilePath 'explorer.exe' -ArgumentList $reportDirectory | Out-Null
+        & $setStatusBar ('Opened {0}' -f $reportDirectory)
+    }
+
+    $openCli = {
+        $scriptPath = Join-Path -Path $script:ScudoRoot -ChildPath 'scudo.ps1'
+        Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "{0}" --cli' -f $scriptPath) | Out-Null
+        & $setStatusBar 'Opened a CLI session.'
     }
 
     $runApply = {
@@ -532,65 +756,72 @@ function Show-ScudoGui {
 
         $control = $controls | Where-Object { $_.Id -eq $guiState.SelectedControlId } | Select-Object -First 1
         $status = $guiState.StatusMap[$guiState.SelectedControlId]
-        if ($null -eq $control) {
+        if ($null -eq $control -or $null -eq $status) {
             return
         }
 
-        if (-not (Test-ScudoAdministrator) -and $control.RequiresAdmin) {
-            $elevate = [System.Windows.Forms.MessageBox]::Show(
-                $form,
-                'This action needs administrator rights. Relaunch the GUI elevated now?',
-                'scudo',
-                [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                [System.Windows.Forms.MessageBoxIcon]::Question
-            )
-            if ($elevate -eq [System.Windows.Forms.DialogResult]::Yes) {
+        if ($control.RequiresAdmin -and -not (Test-ScudoAdministrator)) {
+            $elevate = & $showMessage 'This action needs administrator rights. Relaunch the GUI elevated now?' 'scudo' ([System.Windows.MessageBoxButton]::YesNo) ([System.Windows.MessageBoxImage]::Question)
+            if ($elevate -eq [System.Windows.MessageBoxResult]::Yes) {
                 Start-ScudoElevatedGui
-                $form.Close()
+                $window.Close()
             }
             return
         }
 
         if ($control.Id -eq 'account.create-standard-user') {
-            $userName = Show-ScudoTextPrompt -Owner $form -Title 'Create standard user' -Prompt 'Enter the new local username' -Palette $palette
+            $userName = Show-ScudoTextPrompt -Owner $window -Title 'Create standard user' -Prompt 'Enter the new local username'
             if ([string]::IsNullOrWhiteSpace($userName)) {
                 return
             }
 
-            $passwordText = Show-ScudoTextPrompt -Owner $form -Title 'Create standard user' -Prompt 'Enter the password for the new account' -Palette $palette -AsPassword
+            $passwordText = Show-ScudoTextPrompt -Owner $window -Title 'Create standard user' -Prompt 'Enter the password for the new account' -AsPassword
             if ($null -eq $passwordText) {
                 return
             }
 
             $securePassword = ConvertTo-SecureString -String $passwordText -AsPlainText -Force
-            $result = New-ScudoStandardUser -UserName $userName -Password $securePassword
-            [System.Windows.Forms.MessageBox]::Show($form, $result.Summary, 'scudo', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-            & $refreshList
+            & $setBusy $true
+            try {
+                $result = New-ScudoStandardUser -UserName $userName -Password $securePassword
+                & $showMessage $result.Summary 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Information) | Out-Null
+            }
+            finally {
+                & $setBusy $false
+            }
+
+            & $refreshAll
+            & $selectControl $control.Id
             return
         }
 
         $preflight = Get-ScudoPreflightStatus -Control $control -Action 'apply'
         if ($preflight.Blocked) {
-            $message = @($preflight.Summary) + $preflight.Notes
-            [System.Windows.Forms.MessageBox]::Show($form, ($message -join [Environment]::NewLine), 'scudo', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+            $message = @($preflight.Summary) + @($preflight.Notes)
+            & $showMessage ($message -join [Environment]::NewLine) 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Warning) | Out-Null
             return
         }
 
-        $confirm = [System.Windows.Forms.MessageBox]::Show(
-            $form,
-            ("Apply '{0}' now?" -f $control.Title),
-            'scudo',
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Question
-        )
-        if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) {
+        $confirm = & $showMessage ("Apply '{0}' now?" -f $control.Title) 'scudo' ([System.Windows.MessageBoxButton]::YesNo) ([System.Windows.MessageBoxImage]::Question)
+        if ($confirm -ne [System.Windows.MessageBoxResult]::Yes) {
             return
         }
 
-        $result = Invoke-ScudoControlApply -Control $control
-        Save-ScudoOperationState -Control $control -Action 'apply' -BeforeStatus $status -ResultStatus $result | Out-Null
-        [System.Windows.Forms.MessageBox]::Show($form, $result.Summary, 'scudo', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-        & $refreshList
+        & $setStatusBar ('Applying {0}...' -f $control.Title)
+        & $setBusy $true
+        try {
+            $result = Invoke-ScudoControlApply -Control $control
+            Save-ScudoOperationState -Control $control -Action 'apply' -BeforeStatus $status -ResultStatus $result | Out-Null
+            & $showMessage $result.Summary 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Information) | Out-Null
+        }
+        catch {
+            & $showMessage $_.Exception.Message 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Error) | Out-Null
+        }
+        finally {
+            & $setBusy $false
+        }
+
+        & $refreshAll
         & $selectControl $control.Id
     }
 
@@ -606,102 +837,132 @@ function Show-ScudoGui {
         }
 
         if (-not (Test-ScudoAdministrator)) {
-            $elevate = [System.Windows.Forms.MessageBox]::Show(
-                $form,
-                'This action needs administrator rights. Relaunch the GUI elevated now?',
-                'scudo',
-                [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                [System.Windows.Forms.MessageBoxIcon]::Question
-            )
-            if ($elevate -eq [System.Windows.Forms.DialogResult]::Yes) {
+            $elevate = & $showMessage 'This action needs administrator rights. Relaunch the GUI elevated now?' 'scudo' ([System.Windows.MessageBoxButton]::YesNo) ([System.Windows.MessageBoxImage]::Question)
+            if ($elevate -eq [System.Windows.MessageBoxResult]::Yes) {
                 Start-ScudoElevatedGui
-                $form.Close()
+                $window.Close()
             }
             return
         }
 
         $preflight = Get-ScudoPreflightStatus -Control $control -Action 'rollback'
         if ($preflight.Blocked) {
-            $message = @($preflight.Summary) + $preflight.Notes
-            [System.Windows.Forms.MessageBox]::Show($form, ($message -join [Environment]::NewLine), 'scudo', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+            $message = @($preflight.Summary) + @($preflight.Notes)
+            & $showMessage ($message -join [Environment]::NewLine) 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Warning) | Out-Null
             return
         }
 
-        $confirm = [System.Windows.Forms.MessageBox]::Show(
-            $form,
-            ("Restore the saved state for '{0}' now?" -f $control.Title),
-            'scudo',
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Question
-        )
-        if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) {
+        $confirm = & $showMessage ("Restore the saved state for '{0}' now?" -f $control.Title) 'scudo' ([System.Windows.MessageBoxButton]::YesNo) ([System.Windows.MessageBoxImage]::Question)
+        if ($confirm -ne [System.Windows.MessageBoxResult]::Yes) {
             return
         }
 
-        $currentStatus = Invoke-ScudoControlDetection -Control $control
-        $result = Invoke-ScudoControlRollback -Control $control -Snapshot $snapshot
-        Save-ScudoOperationState -Control $control -Action 'rollback' -BeforeStatus $currentStatus -ResultStatus $result | Out-Null
-        [System.Windows.Forms.MessageBox]::Show($form, $result.Summary, 'scudo', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-        & $refreshList
+        & $setStatusBar ('Rolling back {0}...' -f $control.Title)
+        & $setBusy $true
+        try {
+            $currentStatus = Invoke-ScudoControlDetection -Control $control
+            $result = Invoke-ScudoControlRollback -Control $control -Snapshot $snapshot
+            Save-ScudoOperationState -Control $control -Action 'rollback' -BeforeStatus $currentStatus -ResultStatus $result | Out-Null
+            & $showMessage $result.Summary 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Information) | Out-Null
+        }
+        catch {
+            & $showMessage $_.Exception.Message 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Error) | Out-Null
+        }
+        finally {
+            & $setBusy $false
+        }
+
+        & $refreshAll
         & $selectControl $control.Id
     }
 
-    $exportReports = {
-        $paths = Export-ScudoReport -Results (Get-ScudoReportEntries)
-        $footerLabel.Text = ('Exported report to {0}' -f $paths.MarkdownPath)
-        [System.Windows.Forms.MessageBox]::Show(
-            $form,
-            ("Markdown:`n{0}`n`nJSON:`n{1}" -f $paths.MarkdownPath, $paths.JsonPath),
-            'scudo',
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Information
-        ) | Out-Null
-    }
-
-    $openReports = {
-        $reportDirectory = Get-ScudoReportDirectory
-        New-Item -Path $reportDirectory -ItemType Directory -Force | Out-Null
-        Start-Process -FilePath 'explorer.exe' -ArgumentList $reportDirectory | Out-Null
-    }
-
-    $openCli = {
-        $scriptPath = Join-Path -Path $script:ScudoRoot -ChildPath 'scudo.ps1'
-        Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "{0}" --cli' -f $scriptPath) | Out-Null
-    }
-
-    $refreshListAction = $refreshList
-    $runApplyAction = $runApply
-    $runRollbackAction = $runRollback
-    $exportReportsAction = $exportReports
-    $openReportsAction = $openReports
-    $openCliAction = $openCli
-
-    $categoryBox.Items.Add('All categories') | Out-Null
-    foreach ($category in @($controls | Select-Object -ExpandProperty Category | Sort-Object -Unique)) {
-        $categoryBox.Items.Add($category) | Out-Null
-    }
-    $categoryBox.SelectedIndex = 0
-
-    $sessionLabel.Text = if (Test-ScudoAdministrator) { 'Session: elevated' } else { 'Session: not elevated' }
-
-    $categoryBox.Add_SelectedIndexChanged({ $null = $refreshListAction.InvokeReturnAsIs() })
-    $refreshButton.Add_Click({ $null = $refreshListAction.InvokeReturnAsIs() })
-    $refreshSelectedButton.Add_Click({
-        if (-not [string]::IsNullOrWhiteSpace($guiState.SelectedControlId)) {
-            $control = $controls | Where-Object { $_.Id -eq $guiState.SelectedControlId } | Select-Object -First 1
-            if ($null -ne $control) {
-                $guiState.StatusMap[$guiState.SelectedControlId] = Invoke-ScudoControlDetection -Control $control
-                $null = $refreshListAction.InvokeReturnAsIs()
-                $null = $selectControl.InvokeReturnAsIs($guiState.SelectedControlId)
+    $titleBar.Add_MouseLeftButtonDown({
+        if ($_.ClickCount -eq 2) {
+            if ($window.WindowState -eq [System.Windows.WindowState]::Maximized) {
+                $window.WindowState = [System.Windows.WindowState]::Normal
             }
+            else {
+                $window.WindowState = [System.Windows.WindowState]::Maximized
+            }
+            return
+        }
+
+        $window.DragMove()
+    })
+
+    $minimizeButton.Add_Click({
+        $window.WindowState = [System.Windows.WindowState]::Minimized
+    })
+
+    $closeButton.Add_Click({
+        $window.Close()
+    })
+
+    $sectionChoices = @(
+        [pscustomobject]@{ Id = 'all'; Title = 'All sections' }
+    ) + @(
+        Get-ScudoSectionCatalog |
+            Sort-Object DisplayRank |
+            ForEach-Object {
+                [pscustomobject]@{
+                    Id    = $_.Id
+                    Title = $_.Title
+                }
+            }
+    )
+    $sectionComboBox.ItemsSource = $sectionChoices
+    $sectionComboBox.DisplayMemberPath = 'Title'
+    $sectionComboBox.SelectedIndex = 0
+
+    $trackChoices = @(
+        [pscustomobject]@{ Id = 'all'; Title = 'All tracks' }
+        [pscustomobject]@{ Id = 'baseline'; Title = 'Baseline' }
+        [pscustomobject]@{ Id = 'strict'; Title = 'Strict' }
+        [pscustomobject]@{ Id = 'guided'; Title = 'Guided' }
+        [pscustomobject]@{ Id = 'optional'; Title = 'Optional apps' }
+    )
+    $trackComboBox.ItemsSource = $trackChoices
+    $trackComboBox.DisplayMemberPath = 'Title'
+    $trackComboBox.SelectedIndex = 0
+
+    if (Test-ScudoAdministrator) {
+        $sessionBadgeText.Text = 'Elevated session'
+        $sessionBadge.Background = $window.Resources['AccentPrimaryBrush']
+        $sessionBadgeText.Foreground = $window.Resources['BgMainBrush']
+    }
+    else {
+        $sessionBadgeText.Text = 'Standard session'
+        $sessionBadge.Background = $window.Resources['AccentDangerBrush']
+        $sessionBadgeText.Foreground = $window.Resources['TextPrimaryBrush']
+    }
+
+    $searchTextBox.Add_TextChanged({
+        $guiState.SearchText = [string]$searchTextBox.Text
+        & $renderControlList
+    })
+
+    $sectionComboBox.Add_SelectionChanged({
+        if ($null -ne $sectionComboBox.SelectedItem) {
+            $guiState.SectionId = [string]$sectionComboBox.SelectedItem.Id
+            & $renderControlList
         }
     })
-    $applyButton.Add_Click({ $null = $runApplyAction.InvokeReturnAsIs() })
-    $rollbackButton.Add_Click({ $null = $runRollbackAction.InvokeReturnAsIs() })
-    $exportButton.Add_Click({ $null = $exportReportsAction.InvokeReturnAsIs() })
-    $openReportsButton.Add_Click({ $null = $openReportsAction.InvokeReturnAsIs() })
-    $cliButton.Add_Click({ $null = $openCliAction.InvokeReturnAsIs() })
 
-    & $refreshList
-    [void]$form.ShowDialog()
+    $trackComboBox.Add_SelectionChanged({
+        if ($null -ne $trackComboBox.SelectedItem) {
+            $guiState.TierFilter = [string]$trackComboBox.SelectedItem.Id
+            & $renderControlList
+        }
+    })
+
+    $refreshStatusButton.Add_Click({ & $refreshAll })
+    $refreshSelectedButton.Add_Click({ & $refreshSelected })
+    $applyButton.Add_Click({ & $runApply })
+    $rollbackButton.Add_Click({ & $runRollback })
+    $exportReportButton.Add_Click({ & $exportReports })
+    $openReportsButton.Add_Click({ & $openReports })
+    $openCliButton.Add_Click({ & $openCli })
+
+    & $refreshAll
+    [void]$window.ShowDialog()
 }
