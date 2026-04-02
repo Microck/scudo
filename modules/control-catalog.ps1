@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-function Get-ScudoTranscriptSectionCatalog {
+function Get-ScudoSectionCatalog {
     return @(
         [pscustomobject]@{
             Id          = 'firmware'
@@ -72,7 +72,7 @@ function Get-ScudoPresetCatalog {
         [pscustomobject]@{
             Id          = 'guided'
             Title       = 'Guided walkthrough'
-            Summary     = 'A transcript-ordered review of firmware, Windows, network, physical, browser, and identity controls.'
+            Summary     = 'A guided review of firmware, Windows, network, physical, browser, and identity controls.'
             ApplyMode   = 'guided'
             TierOrder   = @('guided')
         }
@@ -96,7 +96,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Rare legacy software or exploit-lab workflows can depend on weaker mitigation settings.'
             RecommendationTier = 'baseline'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'windows'
+            SectionId          = 'windows'
             SortOrder          = 10
         }
         'defender.asr.office-child-process' = @{
@@ -105,7 +105,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Can break unusual Office automations, templates, or line-of-business document workflows.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'defender'
+            SectionId          = 'defender'
             SortOrder          = 10
         }
         'defender.asr.obfuscated-scripts' = @{
@@ -114,7 +114,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Aggressive script blocking can interfere with custom admin scripts or vendor tooling.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'defender'
+            SectionId          = 'defender'
             SortOrder          = 20
         }
         'defender.asr.email-executable-content' = @{
@@ -123,7 +123,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Can frustrate environments that still pass legitimate installers through email.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'defender'
+            SectionId          = 'defender'
             SortOrder          = 30
         }
         'vbs.memory-integrity' = @{
@@ -132,7 +132,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Can cost some performance and may clash with old or poorly written drivers.'
             RecommendationTier = 'baseline'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'windows'
+            SectionId          = 'windows'
             SortOrder          = 20
         }
         'driver-blocklist' = @{
@@ -141,7 +141,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Old hardware or niche software that relies on outdated drivers may stop working.'
             RecommendationTier = 'baseline'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'windows'
+            SectionId          = 'windows'
             SortOrder          = 30
         }
         'dns.quad9' = @{
@@ -150,7 +150,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Overrides your current DNS design and can conflict with split-DNS, VPN, or managed-network requirements.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'network'
+            SectionId          = 'network'
             SortOrder          = 10
         }
         'dns.doh' = @{
@@ -159,7 +159,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Can interfere with enterprise filtering, captive portals, or networks that expect plain DNS.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'network'
+            SectionId          = 'network'
             SortOrder          = 20
         }
         'service.remote-registry.disabled' = @{
@@ -168,7 +168,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Some remote-management workflows still rely on it.'
             RecommendationTier = 'baseline'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'windows'
+            SectionId          = 'windows'
             SortOrder          = 50
         }
         'service.print-spooler.disabled' = @{
@@ -177,7 +177,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'You lose printing until you restore the service.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'windows'
+            SectionId          = 'windows'
             SortOrder          = 60
         }
         'device-install.restrict-new-devices' = @{
@@ -186,7 +186,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Makes legitimate hardware changes more annoying and can surprise you when plugging in new gear.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'physical'
+            SectionId          = 'physical'
             SortOrder          = 10
         }
         'privacy.telemetry-policy' = @{
@@ -195,7 +195,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Managed or support-heavy environments may want fuller telemetry for troubleshooting.'
             RecommendationTier = 'baseline'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'windows'
+            SectionId          = 'windows'
             SortOrder          = 40
         }
         'privacy.telemetry-services' = @{
@@ -204,7 +204,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Can reduce diagnostic visibility and may not be desirable on managed endpoints.'
             RecommendationTier = 'baseline'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'windows'
+            SectionId          = 'windows'
             SortOrder          = 45
         }
         'browser.firefox-noscript' = @{
@@ -213,7 +213,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Breaks many modern sites until you explicitly allow what should run.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'browser'
+            SectionId          = 'browser'
             SortOrder          = 20
         }
         'browser.firefox-sanitize' = @{
@@ -222,7 +222,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'You lose persistent logins and some site convenience.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'browser'
+            SectionId          = 'browser'
             SortOrder          = 30
         }
         'account.create-standard-user' = @{
@@ -231,7 +231,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'You need to manage a second account and tolerate elevation prompts for admin work.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'guided'
-            TranscriptSection  = 'identity'
+            SectionId          = 'identity'
             SortOrder          = 30
         }
         'app.simplewall-enable-filtering' = @{
@@ -240,7 +240,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Aggressive outbound filtering can break apps until you tune the rule set.'
             RecommendationTier = 'strict'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'network'
+            SectionId          = 'network'
             SortOrder          = 30
         }
         'firmware.reboot-to-uefi' = @{
@@ -249,7 +249,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'It is disruptive and still depends on you making the right firmware changes manually.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'guided'
-            TranscriptSection  = 'firmware'
+            SectionId          = 'firmware'
             SortOrder          = 40
         }
         'secure-boot' = @{
@@ -258,7 +258,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Dual-boot or advanced custom setups may intentionally keep it off.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'check-only'
-            TranscriptSection  = 'firmware'
+            SectionId          = 'firmware'
             SortOrder          = 20
         }
         'app.bitwarden' = @{
@@ -267,7 +267,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'You may already use another password manager or avoid desktop installs on this machine.'
             RecommendationTier = 'optional'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'apps'
+            SectionId          = 'apps'
             SortOrder          = 10
         }
         'app.simplewall' = @{
@@ -276,7 +276,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Adds another network control plane that you must maintain.'
             RecommendationTier = 'optional'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'apps'
+            SectionId          = 'apps'
             SortOrder          = 20
         }
         'app.helium' = @{
@@ -285,7 +285,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Policy and hardening behavior are not validated to the same standard as Firefox in this tool.'
             RecommendationTier = 'optional'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'apps'
+            SectionId          = 'apps'
             SortOrder          = 30
         }
         'app.firefox' = @{
@@ -294,7 +294,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'It only makes sense if you actually want Firefox on this system.'
             RecommendationTier = 'optional'
             AutomationLevel    = 'automatic'
-            TranscriptSection  = 'apps'
+            SectionId          = 'apps'
             SortOrder          = 40
         }
         'kernel-dma-protection' = @{
@@ -303,7 +303,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Some platforms simply do not support it, and Scudo cannot flip the firmware bit for you.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'check-only'
-            TranscriptSection  = 'firmware'
+            SectionId          = 'firmware'
             SortOrder          = 30
         }
         'bios-password' = @{
@@ -312,7 +312,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'A forgotten firmware password is painful and sometimes platform-specific to recover.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'manual'
-            TranscriptSection  = 'firmware'
+            SectionId          = 'firmware'
             SortOrder          = 10
         }
         'account.standard-user' = @{
@@ -321,7 +321,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'It adds friction if this machine is mostly used for administrative tasks.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'manual'
-            TranscriptSection  = 'identity'
+            SectionId          = 'identity'
             SortOrder          = 20
         }
         'password-manager' = @{
@@ -330,16 +330,16 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'You may already have a trusted password-manager workflow.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'manual'
-            TranscriptSection  = 'identity'
+            SectionId          = 'identity'
             SortOrder          = 10
         }
         'public-usb-guidance' = @{
             WhatItDoes         = 'Explains the public charging and hostile USB-device risk model.'
-            WhyApply           = 'The transcript treats brief physical access and public USB data paths as realistic threat vectors.'
+            WhyApply           = 'This hardening model treats brief physical access and public USB data paths as realistic threat vectors.'
             WhyNotApply        = 'This is awareness guidance, not a Windows setting you can safely flip globally.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'manual'
-            TranscriptSection  = 'physical'
+            SectionId          = 'physical'
             SortOrder          = 20
         }
         'browser-hardening' = @{
@@ -348,7 +348,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'Strict browser hardening trades away convenience and website compatibility.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'manual'
-            TranscriptSection  = 'browser'
+            SectionId          = 'browser'
             SortOrder          = 10
         }
         'simplewall-guidance' = @{
@@ -357,7 +357,7 @@ function Get-ScudoControlMetadataMap {
             WhyNotApply        = 'You must actively manage rules or you will break normal traffic.'
             RecommendationTier = 'guided'
             AutomationLevel    = 'manual'
-            TranscriptSection  = 'network'
+            SectionId          = 'network'
             SortOrder          = 40
         }
     }
@@ -768,7 +768,7 @@ function Get-ScudoControlCatalog {
         $control | Add-Member -NotePropertyName WhyNotApply -NotePropertyValue $metadata.WhyNotApply -Force
         $control | Add-Member -NotePropertyName RecommendationTier -NotePropertyValue $metadata.RecommendationTier -Force
         $control | Add-Member -NotePropertyName AutomationLevel -NotePropertyValue $metadata.AutomationLevel -Force
-        $control | Add-Member -NotePropertyName TranscriptSection -NotePropertyValue $metadata.TranscriptSection -Force
+        $control | Add-Member -NotePropertyName SectionId -NotePropertyValue $metadata.SectionId -Force
         $control | Add-Member -NotePropertyName SortOrder -NotePropertyValue $metadata.SortOrder -Force
         $control | Add-Member -NotePropertyName RollbackNote -NotePropertyValue (Get-ScudoDefaultRollbackNote -Control $control) -Force
     }
@@ -802,14 +802,14 @@ function Get-ScudoControlsForPreset {
     }
 
     $sectionMap = @{}
-    foreach ($section in Get-ScudoTranscriptSectionCatalog) {
+    foreach ($section in Get-ScudoSectionCatalog) {
         $sectionMap[$section.Id] = [int]$section.DisplayRank
     }
 
     return @(
         $controls |
             Sort-Object `
-                @{ Expression = { $sectionMap[$_.TranscriptSection] } }, `
+                @{ Expression = { $sectionMap[$_.SectionId] } }, `
                 @{ Expression = { [int]$_.SortOrder } }, `
                 @{ Expression = { $_.Title } }
     )

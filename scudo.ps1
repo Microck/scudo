@@ -85,14 +85,14 @@ function Get-ScudoControlMap {
 
 function Get-ScudoSortedControls {
     $sectionRankMap = @{}
-    foreach ($section in Get-ScudoTranscriptSectionCatalog) {
+    foreach ($section in Get-ScudoSectionCatalog) {
         $sectionRankMap[$section.Id] = [int]$section.DisplayRank
     }
 
     return @(
         Get-ScudoControlCatalog |
             Sort-Object `
-                @{ Expression = { $sectionRankMap[$_.TranscriptSection] } }, `
+                @{ Expression = { $sectionRankMap[$_.SectionId] } }, `
                 @{ Expression = { [int]$_.SortOrder } }, `
                 @{ Expression = { $_.Title } }
     )
@@ -106,7 +106,7 @@ function Get-ScudoControlsForSection {
 
     return @(
         Get-ScudoSortedControls |
-            Where-Object { $_.TranscriptSection -eq $SectionId }
+            Where-Object { $_.SectionId -eq $SectionId }
     )
 }
 
@@ -151,7 +151,7 @@ function Get-ScudoReportEntries {
                 whyNotApply        = $control.WhyNotApply
                 recommendationTier = $control.RecommendationTier
                 automationLevel    = $control.AutomationLevel
-                transcriptSection  = $control.TranscriptSection
+                section            = $control.SectionId
                 rollbackNote       = $control.RollbackNote
                 status             = $statusMap[$control.Id]
             }
@@ -259,7 +259,7 @@ function Show-ScudoControlPreview {
     Write-ScudoText $Control.Title Green
     Write-ScudoText ''
     Write-ScudoText ("State: $($Status.Summary)") (Get-ScudoStatusColor -Status $Status)
-    Write-ScudoText ("Section: {0}" -f $Control.TranscriptSection) DarkGray
+    Write-ScudoText ("Section: {0}" -f $Control.SectionId) DarkGray
     Write-ScudoText ("Tier: {0}" -f (Get-ScudoRecommendationLabel -Tier $Control.RecommendationTier)) DarkGray
     Write-ScudoText ("Automation: {0}" -f (Get-ScudoAutomationLabel -AutomationLevel $Control.AutomationLevel)) DarkGray
     Write-ScudoText ("Requires admin: {0}" -f $Control.RequiresAdmin) DarkGray
@@ -737,7 +737,7 @@ function Show-ScudoOptionalToolsPage {
 
 function Show-ScudoGuidedWalkthrough {
     $sections = @(
-        Get-ScudoTranscriptSectionCatalog |
+        Get-ScudoSectionCatalog |
             Where-Object { $_.Id -ne 'apps' } |
             Sort-Object DisplayRank
     )
@@ -1114,7 +1114,7 @@ function Invoke-ScudoCheckAll {
         Write-ScudoText ('- {0}: {1}' -f $state, $count) DarkGray
     }
 
-    foreach ($section in Get-ScudoTranscriptSectionCatalog | Where-Object { $_.Id -ne 'apps' } | Sort-Object DisplayRank) {
+    foreach ($section in Get-ScudoSectionCatalog | Where-Object { $_.Id -ne 'apps' } | Sort-Object DisplayRank) {
         $controls = Get-ScudoControlsForSection -SectionId $section.Id
         if (@($controls).Count -eq 0) {
             continue

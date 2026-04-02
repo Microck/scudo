@@ -27,14 +27,14 @@ Describe 'scudo control catalog' {
         $menuNumbers | Should -Be @(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
     }
 
-    It 'defines transcript-backed metadata for every control' {
+    It 'defines section metadata for every control' {
         foreach ($control in Get-ScudoControlCatalog) {
             [string]::IsNullOrWhiteSpace($control.WhatItDoes) | Should -BeFalse
             [string]::IsNullOrWhiteSpace($control.WhyApply) | Should -BeFalse
             [string]::IsNullOrWhiteSpace($control.WhyNotApply) | Should -BeFalse
             [string]::IsNullOrWhiteSpace($control.RecommendationTier) | Should -BeFalse
             [string]::IsNullOrWhiteSpace($control.AutomationLevel) | Should -BeFalse
-            [string]::IsNullOrWhiteSpace($control.TranscriptSection) | Should -BeFalse
+            [string]::IsNullOrWhiteSpace($control.SectionId) | Should -BeFalse
             [string]::IsNullOrWhiteSpace($control.RollbackNote) | Should -BeFalse
         }
     }
@@ -131,8 +131,8 @@ Describe 'scudo entrypoint parsing' {
         $showArgs.Show | Should -Be 'strict'
     }
 
-    It 'launches the GUI only for interactive Windows mode' {
-        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @()) -IsWindows $true) | Should -BeTrue
+    It 'launches the GUI only when requested explicitly on Windows' {
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @()) -IsWindows $true) | Should -BeFalse
         (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -IsWindows $true) | Should -BeTrue
         (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--cli')) -IsWindows $true) | Should -BeFalse
         (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--check-all')) -IsWindows $true) | Should -BeFalse
@@ -168,7 +168,7 @@ Describe 'scudo reporting' {
                 whyNotApply        = 'demo'
                 recommendationTier = 'guided'
                 automationLevel    = 'manual'
-                transcriptSection  = 'identity'
+                section            = 'identity'
                 rollbackNote       = 'demo'
                 status             = New-ScudoStatus -State 'advisory' -Summary 'demo'
             }

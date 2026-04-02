@@ -68,7 +68,7 @@ function ConvertTo-ScudoMarkdown {
         $lines.Add("### $($entry.title)")
         $lines.Add('')
         $lines.Add(('- id: `{0}`' -f $entry.id))
-        $lines.Add(('- section: `{0}`' -f $entry.transcriptSection))
+        $lines.Add(('- section: `{0}`' -f $entry.section))
         $lines.Add(('- tier: `{0}`' -f $entry.recommendationTier))
         $lines.Add(('- automation: `{0}`' -f $entry.automationLevel))
         $lines.Add(('- kind: `{0}`' -f $entry.kind))

@@ -98,9 +98,5 @@ function Test-ScudoShouldLaunchGui {
         return $false
     }
 
-    if ($ParsedArguments.Gui) {
-        return $true
-    }
-
-    return $true
+    return [bool]$ParsedArguments.Gui
 }
