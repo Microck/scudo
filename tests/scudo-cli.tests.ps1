@@ -53,7 +53,8 @@ Describe 'scudo cli surface' {
 
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'scudo usage'
-        $result.Output | Should -Match 'scudo --action apply --control-id <id>'
+        $result.Output | Should -Match 'scudo --preset baseline'
+        $result.Output | Should -Match 'scudo --show <control-id\|preset>'
     }
 
     It 'prints the scripted version without requiring Windows 11' {

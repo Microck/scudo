@@ -68,10 +68,17 @@ function ConvertTo-ScudoMarkdown {
         $lines.Add("### $($entry.title)")
         $lines.Add('')
         $lines.Add(('- id: `{0}`' -f $entry.id))
+        $lines.Add(('- section: `{0}`' -f $entry.transcriptSection))
+        $lines.Add(('- tier: `{0}`' -f $entry.recommendationTier))
+        $lines.Add(('- automation: `{0}`' -f $entry.automationLevel))
         $lines.Add(('- kind: `{0}`' -f $entry.kind))
         $lines.Add(('- state: `{0}`' -f $entry.status.State))
         $lines.Add(('- rollback-supported: `{0}`' -f $rollbackSupported))
+        $lines.Add("- rollback-note: $($entry.rollbackNote)")
         $lines.Add("- summary: $($entry.status.Summary)")
+        $lines.Add("- what-it-does: $($entry.whatItDoes)")
+        $lines.Add("- why-apply: $($entry.whyApply)")
+        $lines.Add("- why-not-apply: $($entry.whyNotApply)")
         $lines.Add(('- requires-admin: `{0}`' -f $entry.requiresAdmin))
         $lines.Add(('- requires-reboot: `{0}`' -f $entry.requiresReboot))
 
@@ -85,8 +92,8 @@ function ConvertTo-ScudoMarkdown {
             $lines.Add(('- after: `{0}`' -f $afterJson))
         }
 
-        if ($entry.status.Notes.Count -gt 0) {
-            foreach ($note in $entry.status.Notes) {
+        if (@($entry.status.Notes).Count -gt 0) {
+            foreach ($note in @($entry.status.Notes)) {
                 $lines.Add("- note: $note")
             }
         }

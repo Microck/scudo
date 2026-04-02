@@ -90,8 +90,8 @@ function Start-ScudoTranscript {
     $logDirectory = Get-ScudoLogDirectory -BaseDirectory $BaseDirectory
     New-Item -Path $logDirectory -ItemType Directory -Force | Out-Null
 
-    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $transcriptPath = Join-Path -Path $logDirectory -ChildPath "scudo-$stamp.log"
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
+    $transcriptPath = Join-Path -Path $logDirectory -ChildPath "scudo-$stamp-$PID.log"
 
     try {
         Start-Transcript -Path $transcriptPath -Append -ErrorAction Stop | Out-Null

@@ -276,7 +276,8 @@ function Get-ScudoAsrPreferenceMap {
     $actions = @($preference.AttackSurfaceReductionRules_Actions)
 
     for ($index = 0; $index -lt $ids.Count; $index += 1) {
-        if ($index -lt $actions.Count) {
+        $ruleId = $ids[$index]
+        if ($index -lt $actions.Count -and -not [string]::IsNullOrWhiteSpace($ruleId)) {
             $ruleMap[$ids[$index]] = $actions[$index]
         }
     }
@@ -294,7 +295,12 @@ function Get-ScudoStatusAsrRule {
         return New-ScudoStatus -State 'unsupported' -Summary 'Microsoft Defender PowerShell cmdlets are unavailable.' -Supported $false
     }
 
-    $ruleId = $script:ScudoAsrRules[$ControlId].Id
+    $ruleDefinition = $script:ScudoAsrRules[$ControlId]
+    if ($null -eq $ruleDefinition -or [string]::IsNullOrWhiteSpace($ruleDefinition.Id)) {
+        return New-ScudoStatus -State 'unsupported' -Summary "ASR metadata is missing for $ControlId." -Supported $false
+    }
+
+    $ruleId = $ruleDefinition.Id
     $ruleMap = Get-ScudoAsrPreferenceMap
     $currentValue = $ruleMap[$ruleId]
     $isEnabled = $currentValue -in @('Enabled', '1', 1)
@@ -310,7 +316,12 @@ function Set-ScudoAsrRule {
         [string]$ControlId
     )
 
-    $ruleId = $script:ScudoAsrRules[$ControlId].Id
+    $ruleDefinition = $script:ScudoAsrRules[$ControlId]
+    if ($null -eq $ruleDefinition -or [string]::IsNullOrWhiteSpace($ruleDefinition.Id)) {
+        return New-ScudoStatus -State 'unsupported' -Summary "ASR metadata is missing for $ControlId." -Supported $false
+    }
+
+    $ruleId = $ruleDefinition.Id
     $ruleMap = Get-ScudoAsrPreferenceMap
     $beforeValue = $ruleMap[$ruleId]
     $ruleMap[$ruleId] = 'Enabled'
@@ -321,7 +332,7 @@ function Set-ScudoAsrRule {
     Set-MpPreference -AttackSurfaceReductionRules_Ids $ids -AttackSurfaceReductionRules_Actions $actions | Out-Null
 
     $status = Get-ScudoStatusAsrRule -ControlId $ControlId
-    return New-ScudoStatus -State $status.State -Summary "Enabled $($script:ScudoAsrRules[$ControlId].Title)." -BeforeValue $beforeValue -AfterValue 'Enabled'
+    return New-ScudoStatus -State $status.State -Summary "Enabled $($ruleDefinition.Title)." -BeforeValue $beforeValue -AfterValue 'Enabled'
 }
 
 function Get-ScudoStatusMemoryIntegrity {
@@ -415,9 +426,10 @@ function Get-ScudoStatusDnsOverHttps {
         return New-ScudoStatus -State 'unsupported' -Summary 'DNS-over-HTTPS cmdlets are unavailable.' -Supported $false
     }
 
-    $servers = Get-DnsClientDohServerAddress -ErrorAction SilentlyContinue
-    $quad9Servers = $servers | Where-Object { $_.ServerAddress -in @('9.9.9.9', '149.112.112.112') }
-    $isConfigured = ($quad9Servers.Count -ge 2) -and ($quad9Servers | Where-Object { $_.AutoUpgrade -and -not $_.AllowFallbackToUdp }).Count -ge 2
+    $servers = @(Get-DnsClientDohServerAddress -ErrorAction SilentlyContinue)
+    $quad9Servers = @($servers | Where-Object { $_.ServerAddress -in @('9.9.9.9', '149.112.112.112') })
+    $strictQuad9Servers = @($quad9Servers | Where-Object { $_.AutoUpgrade -and -not $_.AllowFallbackToUdp })
+    $isConfigured = (@($quad9Servers).Count -ge 2) -and (@($strictQuad9Servers).Count -ge 2)
     $state = if ($isConfigured) { 'already-configured' } else { 'needs-action' }
     $summary = if ($isConfigured) { 'Quad9 DNS-over-HTTPS is configured.' } else { 'Quad9 DNS-over-HTTPS is not configured.' }
 
@@ -629,7 +641,7 @@ function Get-ScudoStatusSecureBoot {
     }
 
     try {
-        $enabled = Confirm-SecureBootUEFI
+        $enabled = Confirm-SecureBootUEFI -ErrorAction Stop
         $state = if ($enabled) { 'already-configured' } else { 'needs-action' }
         $summary = if ($enabled) { 'Secure Boot is enabled.' } else { 'Secure Boot is disabled.' }
 

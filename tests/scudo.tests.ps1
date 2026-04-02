@@ -7,6 +7,7 @@ Describe 'scudo control catalog' {
         . (Join-Path -Path $projectRoot -ChildPath 'modules/safety.ps1')
         . (Join-Path -Path $projectRoot -ChildPath 'modules/control-catalog.ps1')
         . (Join-Path -Path $projectRoot -ChildPath 'modules/reporting.ps1')
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/entrypoint.ps1')
     }
 
     It 'defines unique control ids' {
@@ -24,6 +25,18 @@ Describe 'scudo control catalog' {
         )
 
         $menuNumbers | Should -Be @(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+    }
+
+    It 'defines transcript-backed metadata for every control' {
+        foreach ($control in Get-ScudoControlCatalog) {
+            [string]::IsNullOrWhiteSpace($control.WhatItDoes) | Should -BeFalse
+            [string]::IsNullOrWhiteSpace($control.WhyApply) | Should -BeFalse
+            [string]::IsNullOrWhiteSpace($control.WhyNotApply) | Should -BeFalse
+            [string]::IsNullOrWhiteSpace($control.RecommendationTier) | Should -BeFalse
+            [string]::IsNullOrWhiteSpace($control.AutomationLevel) | Should -BeFalse
+            [string]::IsNullOrWhiteSpace($control.TranscriptSection) | Should -BeFalse
+            [string]::IsNullOrWhiteSpace($control.RollbackNote) | Should -BeFalse
+        }
     }
 
     It 'marks all applyable controls as admin-required' {
@@ -84,6 +97,50 @@ Describe 'scudo control catalog' {
             'vbs.memory-integrity'
         )
     }
+
+    It 'defines the baseline and strict preset control sets' {
+        $baselineIds = @(Get-ScudoControlsForPreset -PresetId 'baseline' | Select-Object -ExpandProperty Id)
+        $strictIds = @(Get-ScudoControlsForPreset -PresetId 'strict' | Select-Object -ExpandProperty Id)
+
+        $baselineIds | Should -Contain 'mitigation.control-flow-guard'
+        $baselineIds | Should -Contain 'vbs.memory-integrity'
+        $baselineIds | Should -Not -Contain 'browser.firefox-noscript'
+        $strictIds | Should -Contain 'browser.firefox-noscript'
+        $strictIds | Should -Contain 'dns.quad9'
+        $strictIds | Should -Not -Contain 'app.bitwarden'
+    }
+}
+
+Describe 'scudo entrypoint parsing' {
+    BeforeAll {
+        $projectRoot = Split-Path -Parent $PSScriptRoot
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/entrypoint.ps1')
+    }
+
+    It 'parses gui, cli, preset, and show flags explicitly' {
+        $guiArgs = Get-ScudoParsedArguments -Arguments @('--gui')
+        $cliArgs = Get-ScudoParsedArguments -Arguments @('--cli')
+        $presetArgs = Get-ScudoParsedArguments -Arguments @('--preset', 'baseline')
+        $showArgs = Get-ScudoParsedArguments -Arguments @('--show', 'strict')
+
+        $guiArgs.Gui | Should -BeTrue
+        $guiArgs.Cli | Should -BeFalse
+        $cliArgs.Cli | Should -BeTrue
+        $cliArgs.Gui | Should -BeFalse
+        $presetArgs.Preset | Should -Be 'baseline'
+        $showArgs.Show | Should -Be 'strict'
+    }
+
+    It 'launches the GUI only for interactive Windows mode' {
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @()) -IsWindows $true) | Should -BeTrue
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -IsWindows $true) | Should -BeTrue
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--cli')) -IsWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--check-all')) -IsWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--preset', 'baseline')) -IsWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--show', 'strict')) -IsWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--action', 'apply', '--control-id', 'service.remote-registry.disabled')) -IsWindows $true) | Should -BeFalse
+        (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -IsWindows $false) | Should -BeFalse
+    }
 }
 
 Describe 'scudo reporting' {
@@ -99,14 +156,21 @@ Describe 'scudo reporting' {
         $tempRoot = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath ('scudo-tests-' + [guid]::NewGuid().ToString('N'))
         $results = @(
             [pscustomobject]@{
-                id             = 'demo'
-                title          = 'Demo control'
-                category       = 'Demo'
-                kind           = 'manual-only'
-                requiresAdmin  = $false
-                requiresReboot = $false
-                guidance       = 'demo'
-                status         = New-ScudoStatus -State 'advisory' -Summary 'demo'
+                id                 = 'demo'
+                title              = 'Demo control'
+                category           = 'Demo'
+                kind               = 'manual-only'
+                requiresAdmin      = $false
+                requiresReboot     = $false
+                guidance           = 'demo'
+                whatItDoes         = 'demo'
+                whyApply           = 'demo'
+                whyNotApply        = 'demo'
+                recommendationTier = 'guided'
+                automationLevel    = 'manual'
+                transcriptSection  = 'identity'
+                rollbackNote       = 'demo'
+                status             = New-ScudoStatus -State 'advisory' -Summary 'demo'
             }
         )
 
