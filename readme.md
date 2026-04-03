@@ -68,6 +68,9 @@ scudo --help
 
 if you want the graphical surface instead of the menu, use `scudo --gui`.
 
+<img width="1302" height="840" alt="scudo-gui" src="https://github.com/user-attachments/assets/2cd7fdb9-314b-459b-9c8d-a6df4fcee62e" />
+
+
 advanced:
 
 ```text
