@@ -333,33 +333,6 @@ function Get-ScudoControlMetadataMap {
             SectionId          = 'identity'
             SortOrder          = 10
         }
-        'public-usb-guidance' = @{
-            WhatItDoes         = 'Explains the public charging and hostile USB-device risk model.'
-            WhyApply           = 'This hardening model treats brief physical access and public USB data paths as realistic threat vectors.'
-            WhyNotApply        = 'This is awareness guidance, not a Windows setting you can safely flip globally.'
-            RecommendationTier = 'guided'
-            AutomationLevel    = 'manual'
-            SectionId          = 'physical'
-            SortOrder          = 20
-        }
-        'browser-hardening' = @{
-            WhatItDoes         = 'Explains the browser hardening model behind hardened Firefox, Helium, cookies, and script restriction.'
-            WhyApply           = 'The browser is the biggest practical attack surface on most personal Windows machines.'
-            WhyNotApply        = 'Strict browser hardening trades away convenience and website compatibility.'
-            RecommendationTier = 'guided'
-            AutomationLevel    = 'manual'
-            SectionId          = 'browser'
-            SortOrder          = 10
-        }
-        'simplewall-guidance' = @{
-            WhatItDoes         = 'Explains where outbound filtering helps and what SimpleWall adds.'
-            WhyApply           = 'Outbound prompts and explicit allow rules can expose suspicious traffic that Windows normally lets through.'
-            WhyNotApply        = 'You must actively manage rules or you will break normal traffic.'
-            RecommendationTier = 'guided'
-            AutomationLevel    = 'manual'
-            SectionId          = 'network'
-            SortOrder          = 40
-        }
     }
 }
 
@@ -716,42 +689,6 @@ function Get-ScudoControlCatalog {
             DetectFunction = { Get-ScudoStatusPasswordManagerGuidance }
             ApplyFunction  = $null
             Guidance       = 'Bitwarden or another password manager is a manual choice.'
-        }
-        [pscustomobject]@{
-            Id             = 'public-usb-guidance'
-            MenuNumber     = $null
-            Title          = 'Manual: Public USB and charging guidance'
-            Kind           = 'manual-only'
-            Category       = 'Physical access'
-            RequiresAdmin  = $false
-            RequiresReboot = $false
-            DetectFunction = { Get-ScudoStatusUsbGuidance }
-            ApplyFunction  = $null
-            Guidance       = 'Public USB guidance only.'
-        }
-        [pscustomobject]@{
-            Id             = 'browser-hardening'
-            MenuNumber     = $null
-            Title          = 'Manual: Browser hardening guidance'
-            Kind           = 'manual-only'
-            Category       = 'Browser'
-            RequiresAdmin  = $false
-            RequiresReboot = $false
-            DetectFunction = { Get-ScudoStatusBrowserGuidance }
-            ApplyFunction  = $null
-            Guidance       = 'Browser guidance only.'
-        }
-        [pscustomobject]@{
-            Id             = 'simplewall-guidance'
-            MenuNumber     = $null
-            Title          = 'Manual: SimpleWall guidance'
-            Kind           = 'manual-only'
-            Category       = 'Networking'
-            RequiresAdmin  = $false
-            RequiresReboot = $false
-            DetectFunction = { Get-ScudoStatusSimpleWallGuidance }
-            ApplyFunction  = $null
-            Guidance       = 'Third-party outbound firewall guidance only.'
         }
     )
 

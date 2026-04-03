@@ -1,6 +1,6 @@
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$CliArgs
+    [string[]]$RemainingArguments
 )
 
 Set-StrictMode -Version Latest
@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 
 $script:ScudoVersion = '0.2.0'
 $script:ScudoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$script:ScudoUiBodyWidth = 92
 
 . (Join-Path -Path $script:ScudoRoot -ChildPath 'modules/control-actions.ps1')
 . (Join-Path -Path $script:ScudoRoot -ChildPath 'modules/safety.ps1')
@@ -25,19 +26,416 @@ function Write-ScudoText {
         [ConsoleColor]$Color = [ConsoleColor]::Gray
     )
 
-    if (Test-ScudoWindows) {
-        Write-Host $Text -ForegroundColor $Color
-    }
-    else {
-        Write-Host $Text
+    $metrics = Get-ScudoUiMetrics
+    $lines = Get-ScudoWrappedLines -Text $Text -Width $metrics.BodyWidth
+
+    foreach ($line in $lines) {
+        $prefix = ' ' * $metrics.LeftPad
+        if (Test-ScudoWindows) {
+            Write-Host ($prefix + $line) -ForegroundColor $Color
+        }
+        else {
+            Write-Host ($prefix + $line)
+        }
     }
 }
 
+function Get-ScudoUiMetrics {
+    $consoleWidth = 100
+
+    try {
+        $consoleWidth = [Math]::Max(80, [int]$Host.UI.RawUI.WindowSize.Width)
+    }
+    catch {
+        $consoleWidth = 100
+    }
+
+    $bodyWidth = [Math]::Min($script:ScudoUiBodyWidth, [Math]::Max(72, $consoleWidth - 6))
+    $leftPad = [Math]::Max(0, [int][Math]::Floor(($consoleWidth - $bodyWidth) / 2))
+
+    return [pscustomobject]@{
+        ConsoleWidth = $consoleWidth
+        BodyWidth    = $bodyWidth
+        LeftPad      = $leftPad
+    }
+}
+
+function Get-ScudoWrappedLines {
+    param(
+        [AllowEmptyString()]
+        [string]$Text,
+
+        [Parameter(Mandatory)]
+        [int]$Width
+    )
+
+    if ([string]::IsNullOrEmpty($Text)) {
+        return @('')
+    }
+
+    $wrappedLines = New-Object System.Collections.Generic.List[string]
+    $sourceLines = $Text -split "`r?`n"
+
+    foreach ($sourceLine in $sourceLines) {
+        if ($sourceLine.Length -le $Width) {
+            $wrappedLines.Add($sourceLine)
+            continue
+        }
+
+        $currentLine = ''
+        foreach ($word in ($sourceLine -split '\s+')) {
+            if ([string]::IsNullOrWhiteSpace($word)) {
+                continue
+            }
+
+            if ([string]::IsNullOrEmpty($currentLine)) {
+                if ($word.Length -le $Width) {
+                    $currentLine = $word
+                    continue
+                }
+
+                for ($index = 0; $index -lt $word.Length; $index += $Width) {
+                    $segmentLength = [Math]::Min($Width, $word.Length - $index)
+                    $wrappedLines.Add($word.Substring($index, $segmentLength))
+                }
+
+                continue
+            }
+
+            $candidate = '{0} {1}' -f $currentLine, $word
+            if ($candidate.Length -le $Width) {
+                $currentLine = $candidate
+                continue
+            }
+
+            $wrappedLines.Add($currentLine)
+            if ($word.Length -le $Width) {
+                $currentLine = $word
+                continue
+            }
+
+            for ($index = 0; $index -lt $word.Length; $index += $Width) {
+                $segmentLength = [Math]::Min($Width, $word.Length - $index)
+                $wrappedLines.Add($word.Substring($index, $segmentLength))
+            }
+
+            $currentLine = ''
+        }
+
+        if (-not [string]::IsNullOrEmpty($currentLine)) {
+            $wrappedLines.Add($currentLine)
+        }
+    }
+
+    return @($wrappedLines)
+}
+
+function Write-ScudoCenteredText {
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$Text,
+
+        [ConsoleColor]$Color = [ConsoleColor]::Gray
+    )
+
+    $metrics = Get-ScudoUiMetrics
+    foreach ($line in (Get-ScudoWrappedLines -Text $Text -Width $metrics.BodyWidth)) {
+        $innerPad = [Math]::Max(0, [int][Math]::Floor(($metrics.BodyWidth - $line.Length) / 2))
+        $prefix = ' ' * ($metrics.LeftPad + $innerPad)
+
+        if (Test-ScudoWindows) {
+            Write-Host ($prefix + $line) -ForegroundColor $Color
+        }
+        else {
+            Write-Host ($prefix + $line)
+        }
+    }
+}
+
+function Write-ScudoDivider {
+    param(
+        [string]$Character = '='
+    )
+
+    $metrics = Get-ScudoUiMetrics
+    Write-ScudoText -Text ($Character * $metrics.BodyWidth) -Color DarkGray
+}
+
+function Write-ScudoSpacer {
+    Write-Host ''
+}
+
+function Write-ScudoSectionTitle {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Text,
+
+        [ConsoleColor]$Color = [ConsoleColor]::Gray
+    )
+
+    Write-ScudoText -Text ('[ {0} ]' -f $Text.ToUpperInvariant()) -Color $Color
+}
+
+function Write-ScudoMenuOption {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Key,
+
+        [Parameter(Mandatory)]
+        [string]$Label,
+
+        [string]$Detail = '',
+
+        [ConsoleColor]$Color = [ConsoleColor]::Gray
+    )
+
+    $metrics = Get-ScudoUiMetrics
+    $detailWidth = if ([string]::IsNullOrWhiteSpace($Detail)) { 0 } else { 22 }
+    $labelWidth = $metrics.BodyWidth - 6
+
+    if ($detailWidth -gt 0) {
+        $labelWidth -= ($detailWidth + 1)
+    }
+
+    $trimmedLabel = $Label
+    if ($trimmedLabel.Length -gt $labelWidth) {
+        $trimmedLabel = $trimmedLabel.Substring(0, $labelWidth - 3) + '...'
+    }
+
+    $line = (('[{0}]' -f $Key).PadRight(6)) + $trimmedLabel.PadRight($labelWidth)
+    if ($detailWidth -gt 0) {
+        $trimmedDetail = $Detail
+        if ($trimmedDetail.Length -gt $detailWidth) {
+            $trimmedDetail = $trimmedDetail.Substring(0, $detailWidth - 3) + '...'
+        }
+
+        $line += ' ' + $trimmedDetail.PadLeft($detailWidth)
+    }
+
+    Write-ScudoText -Text $line -Color $Color
+}
+
+function Write-ScudoKeyValue {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Label,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$Value,
+
+        [ConsoleColor]$Color = [ConsoleColor]::DarkGray
+    )
+
+    $line = '{0,-20} {1}' -f ($Label + ':'), $Value
+    Write-ScudoText -Text $line -Color $Color
+}
+
+function Write-ScudoPromptHint {
+    param(
+        [string]$Text = 'Keys: shown items select | N next page | P previous page | 0 back'
+    )
+
+    Write-ScudoDivider -Character '-'
+    Write-ScudoCenteredText -Text $Text -Color DarkGray
+}
+
+function Read-ScudoInput {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Prompt,
+
+        [switch]$AsSecureString
+    )
+
+    $metrics = Get-ScudoUiMetrics
+    $promptText = (' ' * $metrics.LeftPad) + $Prompt
+
+    if ($AsSecureString) {
+        return Read-Host $promptText -AsSecureString
+    }
+
+    return Read-Host $promptText
+}
+
+function Read-ScudoMenuChoice {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Prompt,
+
+        [Parameter(Mandatory)]
+        [string[]]$Choices
+    )
+
+    $normalizedChoices = @(
+        $Choices |
+            ForEach-Object { ([string]$_).ToUpperInvariant() }
+    )
+
+    $supportsSingleKey = (Test-ScudoWindows) -and (@($normalizedChoices | Where-Object { $_.Length -ne 1 }).Count -eq 0)
+    if ($supportsSingleKey) {
+        try {
+            $metrics = Get-ScudoUiMetrics
+            $promptText = (' ' * $metrics.LeftPad) + $Prompt + ' '
+
+            if (Test-ScudoWindows) {
+                Write-Host $promptText -NoNewline -ForegroundColor Gray
+            }
+            else {
+                Write-Host $promptText -NoNewline
+            }
+
+            while ($true) {
+                $keyInfo = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+                $rawCharacter = [string]$keyInfo.Character
+                if ([string]::IsNullOrWhiteSpace($rawCharacter)) {
+                    continue
+                }
+
+                $choice = $rawCharacter.ToUpperInvariant()
+                if ($normalizedChoices -notcontains $choice) {
+                    continue
+                }
+
+                if (Test-ScudoWindows) {
+                    Write-Host $choice -ForegroundColor Green
+                }
+                else {
+                    Write-Host $choice
+                }
+
+                return $choice
+            }
+        }
+        catch {
+        }
+    }
+
+    return (Read-ScudoInput -Prompt $Prompt).ToUpperInvariant()
+}
+
+function Show-ScudoTaskScreen {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Title,
+
+        [string]$Subtitle = ''
+    )
+
+    Write-ScudoBanner
+    Write-ScudoCenteredText -Text $Title -Color Green
+    if (-not [string]::IsNullOrWhiteSpace($Subtitle)) {
+        Write-ScudoCenteredText -Text $Subtitle -Color Gray
+    }
+    Write-ScudoDivider -Character '-'
+}
+
+function Get-ScudoPageItems {
+    param(
+        [Parameter(Mandatory)]
+        [array]$Items,
+
+        [Parameter(Mandatory)]
+        [int]$PageIndex,
+
+        [Parameter(Mandatory)]
+        [int]$PageSize
+    )
+
+    $offset = $PageIndex * $PageSize
+    return @($Items | Select-Object -Skip $offset -First $PageSize)
+}
+
+function Get-ScudoPageCount {
+    param(
+        [Parameter(Mandatory)]
+        [int]$TotalCount,
+
+        [Parameter(Mandatory)]
+        [int]$PageSize
+    )
+
+    if ($TotalCount -le 0) {
+        return 1
+    }
+
+    return [Math]::Max(1, [int][Math]::Ceiling($TotalCount / $PageSize))
+}
+
+function Write-ScudoPageStatus {
+    param(
+        [Parameter(Mandatory)]
+        [int]$PageIndex,
+
+        [Parameter(Mandatory)]
+        [int]$PageCount
+    )
+
+    if ($PageCount -gt 1) {
+        Write-ScudoKeyValue -Label 'Page' -Value ('{0}/{1}' -f ($PageIndex + 1), $PageCount) -Color DarkGray
+    }
+}
+
+function Write-ScudoTaskStep {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Label,
+
+        [Parameter(Mandatory)]
+        [string]$Result,
+
+        [ConsoleColor]$Color = [ConsoleColor]::Gray
+    )
+
+    $metrics = Get-ScudoUiMetrics
+    $normalizedResult = switch ($Result.ToLowerInvariant()) {
+        'already-configured' { 'DONE' }
+        'needs-action' { 'PEND' }
+        'pending-reboot' { 'REBT' }
+        'advisory' { 'MANL' }
+        'unsupported' { 'SKIP' }
+        'error' { 'FAIL' }
+        default {
+            if ($Result.Length -gt 4) {
+                $Result.Substring(0, 4).ToUpperInvariant()
+            }
+            else {
+                $Result.ToUpperInvariant()
+            }
+        }
+    }
+    $resultToken = ('[{0}]' -f $normalizedResult)
+    $labelWidth = [Math]::Max(16, $metrics.BodyWidth - $resultToken.Length - 1)
+    $trimmedLabel = $Label
+    if ($trimmedLabel.Length -gt $labelWidth) {
+        $trimmedLabel = $trimmedLabel.Substring(0, $labelWidth - 3) + '...'
+    }
+
+    $dotCount = [Math]::Max(2, $labelWidth - $trimmedLabel.Length)
+    $line = '{0}{1}{2}' -f $trimmedLabel, ('.' * $dotCount), $resultToken
+    Write-ScudoText -Text $line -Color $Color
+}
+
 function Write-ScudoBanner {
+    if (Test-ScudoWindows) {
+        try {
+            $Host.UI.RawUI.BackgroundColor = 'Black'
+            $Host.UI.RawUI.ForegroundColor = 'Gray'
+        }
+        catch {
+        }
+    }
+
     Clear-Host
-    Write-ScudoText 'scudo' Green
-    Write-ScudoText 'Windows 11 hardening menu' DarkGray
-    Write-ScudoText ''
+    Write-ScudoSpacer
+    Write-ScudoCenteredText -Text ("Session: {0}" -f $(if (Test-ScudoAdministrator) { 'Elevated' } else { 'Standard' })) -Color DarkGray
+    Write-ScudoDivider
+    Write-ScudoSpacer
+    Write-ScudoCenteredText -Text 'SCUDO' -Color Gray
+    Write-ScudoCenteredText -Text ("Windows 11 hardening utility v{0}" -f $script:ScudoVersion) -Color Gray
+    Write-ScudoSpacer
+    Write-ScudoDivider
 }
 
 function Get-ScudoStatusBadge {
@@ -47,12 +445,12 @@ function Get-ScudoStatusBadge {
     )
 
     switch ($Status.State) {
-        'already-configured' { return '[ok]' }
-        'needs-action' { return '[todo]' }
-        'pending-reboot' { return '[reboot]' }
-        'advisory' { return '[info]' }
-        'unsupported' { return '[skip]' }
-        'error' { return '[err]' }
+        'already-configured' { return '[DONE]' }
+        'needs-action' { return '[PEND]' }
+        'pending-reboot' { return '[REBT]' }
+        'advisory' { return '[MANUAL]' }
+        'unsupported' { return '[SKIP]' }
+        'error' { return '[FAIL]' }
         default { return '[?]' }
     }
 }
@@ -67,7 +465,7 @@ function Get-ScudoStatusColor {
         'already-configured' { return [ConsoleColor]::Green }
         'needs-action' { return [ConsoleColor]::Yellow }
         'pending-reboot' { return [ConsoleColor]::Yellow }
-        'advisory' { return [ConsoleColor]::Cyan }
+        'advisory' { return [ConsoleColor]::Gray }
         'unsupported' { return [ConsoleColor]::DarkGray }
         'error' { return [ConsoleColor]::Red }
         default { return [ConsoleColor]::Gray }
@@ -196,17 +594,23 @@ function Show-ScudoMenu {
     )
 
     Write-ScudoBanner
-
-    Write-ScudoText '[1] Review this PC' Green
-    Write-ScudoText '[2] Apply baseline hardening' Green
-    Write-ScudoText '[3] Apply strict hardening' Yellow
-    Write-ScudoText '[4] Guided hardening walkthrough' Cyan
-    Write-ScudoText '[5] Browse individual controls' Green
-    Write-ScudoText '[6] Optional apps and browser tools' Green
-    Write-ScudoText '[7] Roll back a saved change' Yellow
-    Write-ScudoText '[8] Export report' Green
-    Write-ScudoText '[0] Exit' Gray
-    Write-ScudoText ''
+    Write-ScudoSectionTitle -Text 'Audit' -Color Gray
+    Write-ScudoMenuOption -Key '1' -Label 'Audit this PC' -Color Gray
+    Write-ScudoSpacer
+    Write-ScudoSectionTitle -Text 'Apply hardening' -Color Gray
+    Write-ScudoMenuOption -Key '2' -Label 'Apply baseline hardening' -Color Gray
+    Write-ScudoMenuOption -Key '3' -Label 'Apply strict hardening' -Color Gray
+    Write-ScudoSpacer
+    Write-ScudoSectionTitle -Text 'Manual / guided' -Color Gray
+    Write-ScudoMenuOption -Key '4' -Label 'Run guided walkthrough' -Color Gray
+    Write-ScudoSpacer
+    Write-ScudoSectionTitle -Text 'Utilities' -Color Gray
+    Write-ScudoMenuOption -Key '5' -Label 'Review individual controls' -Color Gray
+    Write-ScudoMenuOption -Key '6' -Label 'Manage optional apps and browser tools' -Color Gray
+    Write-ScudoMenuOption -Key '7' -Label 'Restore previous changes' -Color Gray
+    Write-ScudoMenuOption -Key '8' -Label 'Export results' -Color Gray
+    Write-ScudoSpacer
+    Write-ScudoSectionTitle -Text 'Status' -Color Gray
 
     foreach ($preset in @('baseline', 'strict')) {
         $controls = Get-ScudoControlsForPreset -PresetId $preset
@@ -215,15 +619,14 @@ function Show-ScudoMenu {
                 Where-Object { $StatusMap[$_.Id].State -eq 'already-configured' }
         ).Count
         $totalCount = @($controls).Count
-        Write-ScudoText ("{0}: {1}/{2} automatic controls already configured" -f (Get-ScudoRecommendationLabel -Tier $preset), $doneCount, $totalCount) DarkGray
+        $label = if ($preset -eq 'baseline') { 'Baseline configured' } else { 'Strict configured' }
+        Write-ScudoKeyValue -Label $label -Value ('{0}/{1}' -f $doneCount, $totalCount) -Color DarkGray
     }
 
-    if (Test-ScudoAdministrator) {
-        Write-ScudoText 'Session: elevated' DarkGray
-    }
-    else {
-        Write-ScudoText 'Session: not elevated' DarkGray
-    }
+    Write-ScudoText -Text 'Reversible changes can be restored from Utilities.' -Color DarkGray
+    Write-ScudoSpacer
+    Write-ScudoMenuOption -Key '0' -Label 'Exit Scudo' -Color Gray
+    Write-ScudoPromptHint -Text 'Enter 0-8 to continue.'
 }
 
 function Pause-Scudo {
@@ -232,7 +635,8 @@ function Pause-Scudo {
     )
 
     if (-not $SkipPause) {
-        [void](Read-Host 'Press Enter to continue')
+        Write-ScudoPromptHint -Text 'Press Enter to continue.'
+        [void](Read-ScudoInput -Prompt 'Press Enter to continue')
     }
 }
 
@@ -242,7 +646,8 @@ function Confirm-ScudoSelection {
         [string]$Prompt
     )
 
-    $choice = Read-Host "$Prompt [Y/N]"
+    Write-ScudoPromptHint -Text $Prompt
+    $choice = Read-ScudoInput -Prompt "$Prompt [Y/N]"
     return $choice -match '^(?i)y(es)?$'
 }
 
@@ -256,35 +661,35 @@ function Show-ScudoControlPreview {
     )
 
     Write-ScudoBanner
-    Write-ScudoText $Control.Title Green
-    Write-ScudoText ''
-    Write-ScudoText ("State: $($Status.Summary)") (Get-ScudoStatusColor -Status $Status)
-    Write-ScudoText ("Section: {0}" -f $Control.SectionId) DarkGray
-    Write-ScudoText ("Tier: {0}" -f (Get-ScudoRecommendationLabel -Tier $Control.RecommendationTier)) DarkGray
-    Write-ScudoText ("Automation: {0}" -f (Get-ScudoAutomationLabel -AutomationLevel $Control.AutomationLevel)) DarkGray
-    Write-ScudoText ("Requires admin: {0}" -f $Control.RequiresAdmin) DarkGray
-    Write-ScudoText ("Requires reboot: {0}" -f $Control.RequiresReboot) DarkGray
-    Write-ScudoText ("Rollback: {0}" -f $Control.RollbackNote) DarkGray
-    Write-ScudoText ''
-    Write-ScudoText 'What it does' Cyan
-    Write-ScudoText $Control.WhatItDoes Gray
-    Write-ScudoText ''
-    Write-ScudoText 'Why apply it' Cyan
-    Write-ScudoText $Control.WhyApply Gray
-    Write-ScudoText ''
-    Write-ScudoText 'Why skip it' Cyan
-    Write-ScudoText $Control.WhyNotApply Gray
+    Write-ScudoCenteredText -Text $Control.Title -Color Green
+    Write-ScudoDivider -Character '-'
+    Write-ScudoKeyValue -Label 'State' -Value $Status.Summary -Color (Get-ScudoStatusColor -Status $Status)
+    Write-ScudoKeyValue -Label 'Section' -Value $Control.SectionId -Color DarkGray
+    Write-ScudoKeyValue -Label 'Tier' -Value (Get-ScudoRecommendationLabel -Tier $Control.RecommendationTier) -Color DarkGray
+    Write-ScudoKeyValue -Label 'Automation' -Value (Get-ScudoAutomationLabel -AutomationLevel $Control.AutomationLevel) -Color DarkGray
+    Write-ScudoKeyValue -Label 'Requires admin' -Value ([string]$Control.RequiresAdmin).ToLowerInvariant() -Color DarkGray
+    Write-ScudoKeyValue -Label 'Requires reboot' -Value ([string]$Control.RequiresReboot).ToLowerInvariant() -Color DarkGray
+    Write-ScudoKeyValue -Label 'Rollback' -Value $Control.RollbackNote -Color DarkGray
+    Write-ScudoSpacer
+    Write-ScudoSectionTitle -Text 'What it does' -Color Gray
+    Write-ScudoText -Text $Control.WhatItDoes -Color Gray
+    Write-ScudoSpacer
+    Write-ScudoSectionTitle -Text 'Why apply it' -Color Green
+    Write-ScudoText -Text $Control.WhyApply -Color Gray
+    Write-ScudoSpacer
+    Write-ScudoSectionTitle -Text 'Why skip it' -Color Yellow
+    Write-ScudoText -Text $Control.WhyNotApply -Color Gray
 
     $statusNotes = Get-ScudoStatusNotes -Status $Status
     if (@($statusNotes).Count -gt 0) {
-        Write-ScudoText ''
-        Write-ScudoText 'Status notes' Cyan
+        Write-ScudoSpacer
+        Write-ScudoSectionTitle -Text 'Status notes' -Color Gray
         foreach ($note in $statusNotes) {
-            Write-ScudoText "- $note" DarkGray
+            Write-ScudoText -Text ('- {0}' -f $note) -Color DarkGray
         }
     }
 
-    Write-ScudoText ''
+    Write-ScudoSpacer
 }
 
 function Start-ScudoElevatedAction {
@@ -344,13 +749,13 @@ function Invoke-ScudoApplySelection {
             return
         }
 
-        $userName = Read-Host 'Enter the new local username'
+        $userName = Read-ScudoInput -Prompt 'Enter the new local username'
         if ([string]::IsNullOrWhiteSpace($userName)) {
             Write-ScudoText 'Username is required.' Red
             return
         }
 
-        $password = Read-Host 'Enter the password for the new account' -AsSecureString
+        $password = Read-ScudoInput -Prompt 'Enter the password for the new account' -AsSecureString
         $result = New-ScudoStandardUser -UserName $userName -Password $password
         Write-ScudoText ''
         Write-ScudoText $result.Summary (Get-ScudoStatusColor -Status $result)
@@ -379,9 +784,12 @@ function Invoke-ScudoApplySelection {
         return
     }
 
+    Show-ScudoTaskScreen -Title $Control.Title -Subtitle 'Applying control'
+    Write-ScudoTaskStep -Label 'Preflight checks' -Result 'DONE' -Color Green
     $result = Invoke-ScudoControlApply -Control $Control
     Save-ScudoOperationState -Control $Control -Action 'apply' -BeforeStatus $Status -ResultStatus $result | Out-Null
-    Write-ScudoText ''
+    Write-ScudoTaskStep -Label 'Apply control' -Result $result.State -Color (Get-ScudoStatusColor -Status $result)
+    Write-ScudoSpacer
     Write-ScudoText $result.Summary (Get-ScudoStatusColor -Status $result)
 
     if ($result.RequiresReboot) {
@@ -434,9 +842,12 @@ function Invoke-ScudoRollbackSelection {
         return
     }
 
+    Show-ScudoTaskScreen -Title $Control.Title -Subtitle 'Restoring saved state'
+    Write-ScudoTaskStep -Label 'Preflight checks' -Result 'DONE' -Color Green
     $result = Invoke-ScudoControlRollback -Control $Control -Snapshot $Snapshot
     Save-ScudoOperationState -Control $Control -Action 'rollback' -BeforeStatus $currentStatus -ResultStatus $result | Out-Null
-    Write-ScudoText ''
+    Write-ScudoTaskStep -Label 'Rollback control' -Result $result.State -Color (Get-ScudoStatusColor -Status $result)
+    Write-ScudoSpacer
     Write-ScudoText $result.Summary (Get-ScudoStatusColor -Status $result)
 
     if ($result.RequiresReboot) {
@@ -502,6 +913,7 @@ function Invoke-ScudoPresetApply {
         return 0
     }
 
+    Show-ScudoTaskScreen -Title $preset.Title -Subtitle 'Running preset actions'
     $controls = Get-ScudoControlsForPreset -PresetId $PresetId
     $statusMap = Get-ScudoStatusMap
     $hadPendingReboot = $false
@@ -512,18 +924,19 @@ function Invoke-ScudoPresetApply {
         $label = '{0} {1}' -f (Get-ScudoStatusBadge -Status $status), $control.Title
 
         if ($status.State -eq 'already-configured') {
-            Write-ScudoText "$label - already configured" Green
+            Write-ScudoTaskStep -Label $control.Title -Result 'DONE' -Color Green
             continue
         }
 
         if ($status.State -eq 'unsupported') {
-            Write-ScudoText "$label - skipped: $($status.Summary)" DarkGray
+            Write-ScudoTaskStep -Label $control.Title -Result 'SKIP' -Color DarkGray
             continue
         }
 
         $preflight = Get-ScudoPreflightStatus -Control $control -Action 'apply'
         if ($preflight.Blocked) {
-            Write-ScudoText "$label - blocked: $($preflight.Summary)" Red
+            Write-ScudoTaskStep -Label $control.Title -Result 'FAIL' -Color Red
+            Write-ScudoText "Reason: $($preflight.Summary)" DarkGray
             $hadError = $true
             continue
         }
@@ -533,7 +946,8 @@ function Invoke-ScudoPresetApply {
             Save-ScudoOperationState -Control $control -Action 'apply' -BeforeStatus $status -ResultStatus $result | Out-Null
         }
 
-        Write-ScudoText ('{0} - {1}' -f $control.Title, $result.Summary) (Get-ScudoStatusColor -Status $result)
+        Write-ScudoTaskStep -Label $control.Title -Result $result.State -Color (Get-ScudoStatusColor -Status $result)
+        Write-ScudoText $result.Summary DarkGray
         $hadPendingReboot = $hadPendingReboot -or [bool]$result.RequiresReboot
         $hadError = $hadError -or ($result.State -eq 'error')
     }
@@ -586,20 +1000,28 @@ function Show-ScudoControlActionPage {
 
         if ($Control.Kind -in @('applyable', 'installable', 'special')) {
             $applyOption = "$optionNumber"
-            Write-ScudoText ("[{0}] {1}" -f $applyOption, $actionLabel) Green
+            Write-ScudoMenuOption -Key $applyOption -Label $actionLabel -Detail 'run' -Color Green
             $optionNumber += 1
         }
 
         if ((Test-ScudoControlRollbackSupported -Control $Control) -and $null -ne $snapshot) {
             $rollbackOption = "$optionNumber"
-            Write-ScudoText ("[{0}] Roll back saved state" -f $rollbackOption) Yellow
+            Write-ScudoMenuOption -Key $rollbackOption -Label 'Roll back saved state' -Detail 'restore' -Color Yellow
             $optionNumber += 1
         }
 
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        Write-ScudoSpacer
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
 
-        $selection = Read-Host 'Select an option'
+        Write-ScudoPromptHint
+        $choices = @('0')
+        if ($null -ne $applyOption) {
+            $choices += $applyOption
+        }
+        if ($null -ne $rollbackOption) {
+            $choices += $rollbackOption
+        }
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices $choices
         if ($selection -eq '0') {
             return
         }
@@ -630,31 +1052,65 @@ function Show-ScudoControlListPage {
         [array]$Controls
     )
 
+    $pageSize = 8
+    $pageIndex = 0
+
     do {
         Write-ScudoBanner
-        Write-ScudoText $Heading Green
-        Write-ScudoText ''
+        Write-ScudoCenteredText -Text $Heading -Color Green
+        Write-ScudoDivider -Character '-'
 
         if (@($Controls).Count -eq 0) {
             Write-ScudoText 'No controls are available in this view.' DarkGray
-            Write-ScudoText ''
+            Write-ScudoSpacer
             Pause-Scudo
             return
         }
 
-        for ($index = 0; $index -lt @($Controls).Count; $index += 1) {
-            $control = $Controls[$index]
-            $status = Invoke-ScudoControlDetection -Control $control
-            Write-ScudoText ('[{0}] {1} {2}' -f ($index + 1), (Get-ScudoStatusBadge -Status $status), $control.Title) (Get-ScudoStatusColor -Status $status)
-            Write-ScudoText ('    {0} | {1} | {2}' -f $control.Category, (Get-ScudoRecommendationLabel -Tier $control.RecommendationTier), (Get-ScudoAutomationLabel -AutomationLevel $control.AutomationLevel)) DarkGray
+        $pageCount = Get-ScudoPageCount -TotalCount @($Controls).Count -PageSize $pageSize
+        if ($pageIndex -ge $pageCount) {
+            $pageIndex = $pageCount - 1
         }
 
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        $pageItems = Get-ScudoPageItems -Items $Controls -PageIndex $pageIndex -PageSize $pageSize
+        for ($index = 0; $index -lt @($pageItems).Count; $index += 1) {
+            $control = $pageItems[$index]
+            $status = Invoke-ScudoControlDetection -Control $control
+            $detail = '{0} | {1}' -f (Get-ScudoRecommendationLabel -Tier $control.RecommendationTier), (Get-ScudoAutomationLabel -AutomationLevel $control.AutomationLevel)
+            Write-ScudoMenuOption -Key ($index + 1) -Label ('{0} {1}' -f (Get-ScudoStatusBadge -Status $status), $control.Title) -Detail $detail -Color (Get-ScudoStatusColor -Status $status)
+        }
 
-        $selection = Read-Host 'Select a control'
+        Write-ScudoSpacer
+        Write-ScudoPageStatus -PageIndex $pageIndex -PageCount $pageCount
+        if ($pageIndex -gt 0) {
+            Write-ScudoMenuOption -Key 'P' -Label 'Previous page' -Detail 'navigate' -Color Gray
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            Write-ScudoMenuOption -Key 'N' -Label 'Next page' -Detail 'navigate' -Color Gray
+        }
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
+
+        Write-ScudoPromptHint
+        $choices = @('0') + @(1..@($pageItems).Count | ForEach-Object { "$_" })
+        if ($pageIndex -gt 0) {
+            $choices += 'P'
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            $choices += 'N'
+        }
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices $choices
         if ($selection -eq '0') {
             return
+        }
+
+        if ($selection -eq 'P') {
+            $pageIndex -= 1
+            continue
+        }
+
+        if ($selection -eq 'N') {
+            $pageIndex += 1
+            continue
         }
 
         $selectedIndex = 0
@@ -664,13 +1120,13 @@ function Show-ScudoControlListPage {
             continue
         }
 
-        if ($selectedIndex -lt 1 -or $selectedIndex -gt @($Controls).Count) {
+        if ($selectedIndex -lt 1 -or $selectedIndex -gt @($pageItems).Count) {
             Write-ScudoText 'Invalid selection.' Red
             Pause-Scudo
             continue
         }
 
-        Show-ScudoControlActionPage -Control $Controls[$selectedIndex - 1]
+        Show-ScudoControlActionPage -Control $pageItems[$selectedIndex - 1]
     } while ($true)
 }
 
@@ -681,21 +1137,55 @@ function Show-ScudoBrowseControlsPage {
             Select-Object -ExpandProperty Category -Unique
     )
 
+    $pageSize = 8
+    $pageIndex = 0
+
     do {
         Write-ScudoBanner
-        Write-ScudoText 'Browse individual controls' Green
-        Write-ScudoText ''
+        Write-ScudoCenteredText -Text 'Browse individual controls' -Color Green
+        Write-ScudoDivider -Character '-'
 
-        for ($index = 0; $index -lt @($categories).Count; $index += 1) {
-            Write-ScudoText ('[{0}] {1}' -f ($index + 1), $categories[$index]) Gray
+        $pageCount = Get-ScudoPageCount -TotalCount @($categories).Count -PageSize $pageSize
+        if ($pageIndex -ge $pageCount) {
+            $pageIndex = $pageCount - 1
         }
 
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        $pageItems = Get-ScudoPageItems -Items $categories -PageIndex $pageIndex -PageSize $pageSize
+        for ($index = 0; $index -lt @($pageItems).Count; $index += 1) {
+            Write-ScudoMenuOption -Key ($index + 1) -Label $pageItems[$index] -Detail 'category' -Color Gray
+        }
 
-        $selection = Read-Host 'Select a category'
+        Write-ScudoSpacer
+        Write-ScudoPageStatus -PageIndex $pageIndex -PageCount $pageCount
+        if ($pageIndex -gt 0) {
+            Write-ScudoMenuOption -Key 'P' -Label 'Previous page' -Detail 'navigate' -Color Gray
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            Write-ScudoMenuOption -Key 'N' -Label 'Next page' -Detail 'navigate' -Color Gray
+        }
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
+
+        Write-ScudoPromptHint
+        $choices = @('0') + @(1..@($pageItems).Count | ForEach-Object { "$_" })
+        if ($pageIndex -gt 0) {
+            $choices += 'P'
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            $choices += 'N'
+        }
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices $choices
         if ($selection -eq '0') {
             return
+        }
+
+        if ($selection -eq 'P') {
+            $pageIndex -= 1
+            continue
+        }
+
+        if ($selection -eq 'N') {
+            $pageIndex += 1
+            continue
         }
 
         $selectedIndex = 0
@@ -705,13 +1195,13 @@ function Show-ScudoBrowseControlsPage {
             continue
         }
 
-        if ($selectedIndex -lt 1 -or $selectedIndex -gt @($categories).Count) {
+        if ($selectedIndex -lt 1 -or $selectedIndex -gt @($pageItems).Count) {
             Write-ScudoText 'Invalid selection.' Red
             Pause-Scudo
             continue
         }
 
-        $category = $categories[$selectedIndex - 1]
+        $category = $pageItems[$selectedIndex - 1]
         $controls = @(
             Get-ScudoSortedControls |
                 Where-Object { $_.Category -eq $category }
@@ -726,8 +1216,7 @@ function Show-ScudoOptionalToolsPage {
             Where-Object {
                 $_.Category -eq 'Apps' -or $_.Id -in @(
                     'browser.firefox-noscript',
-                    'browser.firefox-sanitize',
-                    'browser-hardening'
+                    'browser.firefox-sanitize'
                 )
             }
     )
@@ -747,10 +1236,10 @@ function Show-ScudoGuidedWalkthrough {
 
         do {
             Write-ScudoBanner
-            Write-ScudoText $section.Title Cyan
-            Write-ScudoText ''
+            Write-ScudoCenteredText -Text $section.Title -Color Green
+            Write-ScudoDivider -Character '-'
             Write-ScudoText $section.Summary Gray
-            Write-ScudoText ''
+            Write-ScudoSpacer
 
             $controls = Get-ScudoControlsForSection -SectionId $section.Id
             foreach ($control in $controls) {
@@ -758,15 +1247,19 @@ function Show-ScudoGuidedWalkthrough {
                 Write-ScudoText ('- {0} {1}' -f (Get-ScudoStatusBadge -Status $status), $control.Title) (Get-ScudoStatusColor -Status $status)
             }
 
-            Write-ScudoText ''
-            Write-ScudoText '[1] Review this section' Green
+            Write-ScudoSpacer
+            Write-ScudoMenuOption -Key '1' -Label 'Review this section' -Detail 'details' -Color Green
             if ($index -lt (@($sections).Count - 1)) {
-                Write-ScudoText '[2] Next section' Gray
+                Write-ScudoMenuOption -Key '2' -Label 'Next section' -Detail 'continue' -Color Gray
             }
-            Write-ScudoText '[0] Exit walkthrough' Gray
-            Write-ScudoText ''
+            Write-ScudoMenuOption -Key '0' -Label 'Exit walkthrough' -Color DarkGray
 
-            $selection = Read-Host 'Select an option'
+            Write-ScudoPromptHint
+            $choices = @('0', '1')
+            if ($index -lt (@($sections).Count - 1)) {
+                $choices += '2'
+            }
+            $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices $choices
             switch ($selection) {
                 '1' {
                     Show-ScudoControlListPage -Heading $section.Title -Controls $controls
@@ -823,11 +1316,13 @@ function Invoke-ScudoShowTarget {
 
 function Show-ScudoRollbackPage {
     $rollbackControls = Get-ScudoRollbackControls
+    $pageSize = 8
+    $pageIndex = 0
 
     do {
         Write-ScudoBanner
-        Write-ScudoText 'Saved control rollback' Yellow
-        Write-ScudoText ''
+        Write-ScudoCenteredText -Text 'Saved control rollback' -Color Yellow
+        Write-ScudoDivider -Character '-'
 
         $controlsWithSnapshots = @()
         foreach ($control in $rollbackControls) {
@@ -844,23 +1339,54 @@ function Show-ScudoRollbackPage {
 
         if ($controlsWithSnapshots.Count -eq 0) {
             Write-ScudoText 'No saved Scudo control states are available for rollback yet.' DarkGray
-            Write-ScudoText ''
+            Write-ScudoSpacer
             Pause-Scudo
             return
         }
 
-        for ($index = 0; $index -lt $controlsWithSnapshots.Count; $index += 1) {
-            $item = $controlsWithSnapshots[$index]
-            Write-ScudoText ('[{0}] [ok] {1}' -f ($index + 1), $item.Control.Title) Yellow
-            Write-ScudoText ('    saved: {0}' -f $item.Snapshot.savedAt) DarkGray
+        $pageCount = Get-ScudoPageCount -TotalCount $controlsWithSnapshots.Count -PageSize $pageSize
+        if ($pageIndex -ge $pageCount) {
+            $pageIndex = $pageCount - 1
         }
 
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        $pageItems = Get-ScudoPageItems -Items $controlsWithSnapshots -PageIndex $pageIndex -PageSize $pageSize
+        for ($index = 0; $index -lt $pageItems.Count; $index += 1) {
+            $item = $pageItems[$index]
+            Write-ScudoMenuOption -Key ($index + 1) -Label ('[DONE] {0}' -f $item.Control.Title) -Detail 'saved state' -Color Yellow
+            Write-ScudoKeyValue -Label 'Saved' -Value $item.Snapshot.savedAt -Color DarkGray
+        }
 
-        $selection = Read-Host 'Select an option'
+        Write-ScudoSpacer
+        Write-ScudoPageStatus -PageIndex $pageIndex -PageCount $pageCount
+        if ($pageIndex -gt 0) {
+            Write-ScudoMenuOption -Key 'P' -Label 'Previous page' -Detail 'navigate' -Color Gray
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            Write-ScudoMenuOption -Key 'N' -Label 'Next page' -Detail 'navigate' -Color Gray
+        }
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
+
+        Write-ScudoPromptHint
+        $choices = @('0') + @(1..$pageItems.Count | ForEach-Object { "$_" })
+        if ($pageIndex -gt 0) {
+            $choices += 'P'
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            $choices += 'N'
+        }
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices $choices
         if ($selection -eq '0') {
             return
+        }
+
+        if ($selection -eq 'P') {
+            $pageIndex -= 1
+            continue
+        }
+
+        if ($selection -eq 'N') {
+            $pageIndex += 1
+            continue
         }
 
         $selectedIndex = 0
@@ -870,13 +1396,13 @@ function Show-ScudoRollbackPage {
             continue
         }
 
-        if ($selectedIndex -lt 1 -or $selectedIndex -gt $controlsWithSnapshots.Count) {
+        if ($selectedIndex -lt 1 -or $selectedIndex -gt $pageItems.Count) {
             Write-ScudoText 'Invalid selection.' Red
             Pause-Scudo
             continue
         }
 
-        $selectedItem = $controlsWithSnapshots[$selectedIndex - 1]
+        $selectedItem = $pageItems[$selectedIndex - 1]
         Invoke-ScudoRollbackSelection -Control $selectedItem.Control -Snapshot $selectedItem.Snapshot
         Pause-Scudo
     } while ($true)
@@ -887,8 +1413,8 @@ function Show-ScudoFirmwarePage {
 
     do {
         Write-ScudoBanner
-        Write-ScudoText 'Firmware and boot items' Cyan
-        Write-ScudoText ''
+        Write-ScudoCenteredText -Text 'Firmware and boot items' -Color Green
+        Write-ScudoDivider -Character '-'
 
         $infoControls = @($firmwareControls | Where-Object { $_.Id -in @('secure-boot', 'kernel-dma-protection', 'bios-password') })
         foreach ($control in $infoControls) {
@@ -899,12 +1425,12 @@ function Show-ScudoFirmwarePage {
             }
         }
 
-        Write-ScudoText ''
-        Write-ScudoText '[1] Reboot to firmware settings' Green
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        Write-ScudoSpacer
+        Write-ScudoMenuOption -Key '1' -Label 'Reboot to firmware settings' -Detail 'uefi' -Color Green
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
 
-        $selection = Read-Host 'Select an option'
+        Write-ScudoPromptHint
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices @('0', '1')
         if ($selection -eq '0') {
             return
         }
@@ -926,15 +1452,15 @@ function Show-ScudoGuidancePage {
     $guidanceControls = Get-ScudoControlCatalog | Where-Object { $_.Kind -eq 'manual-only' -and $_.Category -ne 'Firmware' }
 
     Write-ScudoBanner
-    Write-ScudoText 'Remaining manual guidance' Cyan
-    Write-ScudoText ''
+    Write-ScudoCenteredText -Text 'Remaining manual guidance' -Color Yellow
+    Write-ScudoDivider -Character '-'
 
     foreach ($control in $guidanceControls) {
         $status = Invoke-ScudoControlDetection -Control $control
-        Write-ScudoText "$($control.Title): $($status.Summary)" Cyan
+        Write-ScudoText "$($control.Title): $($status.Summary)" Gray
     }
 
-    Write-ScudoText ''
+    Write-ScudoSpacer
     Pause-Scudo
 }
 
@@ -949,16 +1475,16 @@ function Show-ScudoPrivacyIdentityPage {
         $standardUserStatus = Invoke-ScudoControlDetection -Control $standardUserControl
 
         Write-ScudoBanner
-        Write-ScudoText 'Privacy and account tools' Green
-        Write-ScudoText ''
-        Write-ScudoText "[1] $(Get-ScudoStatusBadge -Status $telemetryPolicyStatus) Reduce telemetry policy" (Get-ScudoStatusColor -Status $telemetryPolicyStatus)
-        Write-ScudoText "[2] $(Get-ScudoStatusBadge -Status $telemetryServicesStatus) Disable telemetry services" (Get-ScudoStatusColor -Status $telemetryServicesStatus)
-        Write-ScudoText "[3] $(Get-ScudoStatusBadge -Status $standardUserStatus) Create standard local user" Cyan
-        Write-ScudoText '[4] Show remaining manual identity guidance' Cyan
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        Write-ScudoCenteredText -Text 'Privacy and account tools' -Color Green
+        Write-ScudoDivider -Character '-'
+        Write-ScudoMenuOption -Key '1' -Label ("{0} Reduce telemetry policy" -f (Get-ScudoStatusBadge -Status $telemetryPolicyStatus)) -Detail 'privacy' -Color (Get-ScudoStatusColor -Status $telemetryPolicyStatus)
+        Write-ScudoMenuOption -Key '2' -Label ("{0} Disable telemetry services" -f (Get-ScudoStatusBadge -Status $telemetryServicesStatus)) -Detail 'services' -Color (Get-ScudoStatusColor -Status $telemetryServicesStatus)
+        Write-ScudoMenuOption -Key '3' -Label ("{0} Create standard local user" -f (Get-ScudoStatusBadge -Status $standardUserStatus)) -Detail 'identity' -Color Yellow
+        Write-ScudoMenuOption -Key '4' -Label 'Show remaining manual identity guidance' -Detail 'manual' -Color Gray
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
 
-        $selection = Read-Host 'Select an option'
+        Write-ScudoPromptHint
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices @('0', '1', '2', '3', '4')
         switch ($selection) {
             '1' {
                 Invoke-ScudoApplySelection -Control $telemetryPolicyControl -Status $telemetryPolicyStatus
@@ -979,14 +1505,14 @@ function Show-ScudoPrivacyIdentityPage {
                     continue
                 }
 
-                $userName = Read-Host 'Enter the new local username'
+                $userName = Read-ScudoInput -Prompt 'Enter the new local username'
                 if ([string]::IsNullOrWhiteSpace($userName)) {
                     Write-ScudoText 'Username is required.' Red
                     Pause-Scudo
                     continue
                 }
 
-                $password = Read-Host 'Enter the password for the new account' -AsSecureString
+                $password = Read-ScudoInput -Prompt 'Enter the password for the new account' -AsSecureString
                 $result = New-ScudoStandardUser -UserName $userName -Password $password
                 Write-ScudoText $result.Summary (Get-ScudoStatusColor -Status $result)
                 Pause-Scudo
@@ -996,7 +1522,7 @@ function Show-ScudoPrivacyIdentityPage {
                 $manualIdentityControls = Get-ScudoControlCatalog | Where-Object { $_.Kind -eq 'manual-only' -and $_.Category -eq 'Identity' }
                 foreach ($control in $manualIdentityControls) {
                     $status = Invoke-ScudoControlDetection -Control $control
-                    Write-ScudoText "$($control.Title): $($status.Summary)" Cyan
+                    Write-ScudoText "$($control.Title): $($status.Summary)" Gray
                 }
                 Pause-Scudo
             }
@@ -1013,25 +1539,57 @@ function Show-ScudoPrivacyIdentityPage {
 
 function Show-ScudoInstallAppsPage {
     $appControls = Get-ScudoControlCatalog | Where-Object { $_.Category -eq 'Apps' } | Sort-Object Title
+    $pageSize = 8
+    $pageIndex = 0
 
     do {
         Write-ScudoBanner
-        Write-ScudoText 'Install recommended apps' Green
-        Write-ScudoText ''
+        Write-ScudoCenteredText -Text 'Install recommended apps' -Color Green
+        Write-ScudoDivider -Character '-'
 
-        for ($index = 0; $index -lt $appControls.Count; $index += 1) {
-            $control = $appControls[$index]
-            $status = Invoke-ScudoControlDetection -Control $control
-            $line = ('[{0}] {1} {2}' -f ($index + 1), (Get-ScudoStatusBadge -Status $status), $control.Title)
-            Write-ScudoText $line (Get-ScudoStatusColor -Status $status)
+        $pageCount = Get-ScudoPageCount -TotalCount $appControls.Count -PageSize $pageSize
+        if ($pageIndex -ge $pageCount) {
+            $pageIndex = $pageCount - 1
         }
 
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        $pageItems = Get-ScudoPageItems -Items $appControls -PageIndex $pageIndex -PageSize $pageSize
+        for ($index = 0; $index -lt $pageItems.Count; $index += 1) {
+            $control = $pageItems[$index]
+            $status = Invoke-ScudoControlDetection -Control $control
+            Write-ScudoMenuOption -Key ($index + 1) -Label ('{0} {1}' -f (Get-ScudoStatusBadge -Status $status), $control.Title) -Detail 'install' -Color (Get-ScudoStatusColor -Status $status)
+        }
 
-        $selection = Read-Host 'Select an app'
+        Write-ScudoSpacer
+        Write-ScudoPageStatus -PageIndex $pageIndex -PageCount $pageCount
+        if ($pageIndex -gt 0) {
+            Write-ScudoMenuOption -Key 'P' -Label 'Previous page' -Detail 'navigate' -Color Gray
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            Write-ScudoMenuOption -Key 'N' -Label 'Next page' -Detail 'navigate' -Color Gray
+        }
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
+
+        Write-ScudoPromptHint
+        $choices = @('0') + @(1..$pageItems.Count | ForEach-Object { "$_" })
+        if ($pageIndex -gt 0) {
+            $choices += 'P'
+        }
+        if ($pageIndex -lt ($pageCount - 1)) {
+            $choices += 'N'
+        }
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices $choices
         if ($selection -eq '0') {
             return
+        }
+
+        if ($selection -eq 'P') {
+            $pageIndex -= 1
+            continue
+        }
+
+        if ($selection -eq 'N') {
+            $pageIndex += 1
+            continue
         }
 
         $selectedIndex = 0
@@ -1041,13 +1599,13 @@ function Show-ScudoInstallAppsPage {
             continue
         }
 
-        if ($selectedIndex -lt 1 -or $selectedIndex -gt $appControls.Count) {
+        if ($selectedIndex -lt 1 -or $selectedIndex -gt $pageItems.Count) {
             Write-ScudoText 'Invalid selection.' Red
             Pause-Scudo
             continue
         }
 
-        $control = $appControls[$selectedIndex - 1]
+        $control = $pageItems[$selectedIndex - 1]
         $status = Invoke-ScudoControlDetection -Control $control
         Invoke-ScudoApplySelection -Control $control -Status $status
         Pause-Scudo
@@ -1062,15 +1620,15 @@ function Show-ScudoBrowserToolsPage {
         $sanitizeStatus = Invoke-ScudoControlDetection -Control $firefoxSanitizeControl
 
         Write-ScudoBanner
-        Write-ScudoText 'Browser tools' Green
-        Write-ScudoText ''
-        Write-ScudoText "[1] $(Get-ScudoStatusBadge -Status $noScriptStatus) Apply Firefox NoScript policy" (Get-ScudoStatusColor -Status $noScriptStatus)
-        Write-ScudoText "[2] $(Get-ScudoStatusBadge -Status $sanitizeStatus) Apply Firefox shutdown sanitization" (Get-ScudoStatusColor -Status $sanitizeStatus)
-        Write-ScudoText '[3] Show remaining manual browser guidance' Cyan
-        Write-ScudoText '[0] Back' Gray
-        Write-ScudoText ''
+        Write-ScudoCenteredText -Text 'Browser tools' -Color Green
+        Write-ScudoDivider -Character '-'
+        Write-ScudoMenuOption -Key '1' -Label ("{0} Apply Firefox NoScript policy" -f (Get-ScudoStatusBadge -Status $noScriptStatus)) -Detail 'policy' -Color (Get-ScudoStatusColor -Status $noScriptStatus)
+        Write-ScudoMenuOption -Key '2' -Label ("{0} Apply Firefox shutdown sanitization" -f (Get-ScudoStatusBadge -Status $sanitizeStatus)) -Detail 'privacy' -Color (Get-ScudoStatusColor -Status $sanitizeStatus)
+        Write-ScudoMenuOption -Key '3' -Label 'Show remaining manual browser guidance' -Detail 'manual' -Color Gray
+        Write-ScudoMenuOption -Key '0' -Label 'Back' -Color DarkGray
 
-        $selection = Read-Host 'Select an option'
+        Write-ScudoPromptHint
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices @('0', '1', '2', '3')
         switch ($selection) {
             '1' {
                 Invoke-ScudoApplySelection -Control $firefoxNoScriptControl -Status $noScriptStatus
@@ -1085,7 +1643,7 @@ function Show-ScudoBrowserToolsPage {
                 $manualBrowserControls = Get-ScudoControlCatalog | Where-Object { $_.Kind -eq 'manual-only' -and $_.Category -eq 'Browser' }
                 foreach ($control in $manualBrowserControls) {
                     $status = Invoke-ScudoControlDetection -Control $control
-                    Write-ScudoText "$($control.Title): $($status.Summary)" Cyan
+                    Write-ScudoText "$($control.Title): $($status.Summary)" Gray
                 }
                 Pause-Scudo
             }
@@ -1101,17 +1659,16 @@ function Show-ScudoBrowserToolsPage {
 }
 
 function Invoke-ScudoCheckAll {
-    Write-ScudoBanner
-    Write-ScudoText 'Review this PC' Green
-    Write-ScudoText ''
+    Show-ScudoTaskScreen -Title 'Review this PC' -Subtitle 'Current hardening status'
 
     $statusMap = Get-ScudoStatusMap
+    Write-ScudoSectionTitle -Text 'Summary' -Color Gray
     foreach ($state in 'already-configured', 'needs-action', 'pending-reboot', 'advisory', 'unsupported', 'error') {
         $count = @(
             $statusMap.Values |
                 Where-Object { $_.State -eq $state }
         ).Count
-        Write-ScudoText ('- {0}: {1}' -f $state, $count) DarkGray
+        Write-ScudoKeyValue -Label $state -Value "$count" -Color DarkGray
     }
 
     foreach ($section in Get-ScudoSectionCatalog | Where-Object { $_.Id -ne 'apps' } | Sort-Object DisplayRank) {
@@ -1120,23 +1677,27 @@ function Invoke-ScudoCheckAll {
             continue
         }
 
-        Write-ScudoText ''
-        Write-ScudoText $section.Title Cyan
+        Write-ScudoSpacer
+        Write-ScudoSectionTitle -Text $section.Title -Color Yellow
         foreach ($control in $controls) {
             $status = $statusMap[$control.Id]
             $label = '{0} {1}' -f (Get-ScudoStatusBadge -Status $status), $control.Title
             Write-ScudoText $label (Get-ScudoStatusColor -Status $status)
-            Write-ScudoText ('    {0}' -f $status.Summary) DarkGray
+            Write-ScudoText ('  {0}' -f $status.Summary) DarkGray
         }
     }
 
-    Write-ScudoText ''
+    Write-ScudoSpacer
 }
 
 function Invoke-ScudoExport {
+    Show-ScudoTaskScreen -Title 'Export report' -Subtitle 'Generating markdown and JSON output'
     $reportPaths = Export-ScudoReport -Results (Get-ScudoReportEntries)
-    Write-ScudoText "Markdown: $($reportPaths.MarkdownPath)" Green
-    Write-ScudoText "JSON: $($reportPaths.JsonPath)" Green
+    Write-ScudoTaskStep -Label 'Write markdown report' -Result 'DONE' -Color Green
+    Write-ScudoTaskStep -Label 'Write JSON report' -Result 'DONE' -Color Green
+    Write-ScudoSpacer
+    Write-ScudoKeyValue -Label 'Markdown' -Value $reportPaths.MarkdownPath -Color DarkGray
+    Write-ScudoKeyValue -Label 'JSON' -Value $reportPaths.JsonPath -Color DarkGray
 }
 
 function Show-ScudoHelp {
@@ -1186,8 +1747,12 @@ function Invoke-ScudoDirectApply {
         return 1
     }
 
+    Show-ScudoTaskScreen -Title $control.Title -Subtitle 'Applying control'
+    Write-ScudoTaskStep -Label 'Preflight checks' -Result 'DONE' -Color Green
     $result = Invoke-ScudoControlApply -Control $control
     Save-ScudoOperationState -Control $control -Action 'apply' -BeforeStatus $status -ResultStatus $result | Out-Null
+    Write-ScudoTaskStep -Label 'Apply control' -Result $result.State -Color (Get-ScudoStatusColor -Status $result)
+    Write-ScudoSpacer
     Write-ScudoText $result.Summary (Get-ScudoStatusColor -Status $result)
     Pause-Scudo -SkipPause $SkipPause
 
@@ -1235,8 +1800,12 @@ function Invoke-ScudoDirectRollback {
         return 1
     }
 
+    Show-ScudoTaskScreen -Title $control.Title -Subtitle 'Restoring saved state'
+    Write-ScudoTaskStep -Label 'Preflight checks' -Result 'DONE' -Color Green
     $result = Invoke-ScudoControlRollback -Control $control -Snapshot $snapshot
     Save-ScudoOperationState -Control $control -Action 'rollback' -BeforeStatus $status -ResultStatus $result | Out-Null
+    Write-ScudoTaskStep -Label 'Rollback control' -Result $result.State -Color (Get-ScudoStatusColor -Status $result)
+    Write-ScudoSpacer
     Write-ScudoText $result.Summary (Get-ScudoStatusColor -Status $result)
     Pause-Scudo -SkipPause $SkipPause
 
@@ -1255,7 +1824,7 @@ function Start-ScudoMenu {
     do {
         $statusMap = Get-ScudoStatusMap
         Show-ScudoMenu -StatusMap $statusMap
-        $selection = Read-Host 'Select an option'
+        $selection = Read-ScudoMenuChoice -Prompt 'Enter an option number:' -Choices @('0', '1', '2', '3', '4', '5', '6', '7', '8')
 
         switch ($selection) {
             '1' {
@@ -1296,7 +1865,7 @@ function Start-ScudoMenu {
     } while ($true)
 }
 
-$parsedArguments = Get-ScudoParsedArguments -Arguments $CliArgs
+$parsedArguments = Get-ScudoParsedArguments -Arguments @($RemainingArguments)
 
 if ($parsedArguments.Help) {
     Show-ScudoHelp

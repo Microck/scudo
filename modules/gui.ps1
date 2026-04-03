@@ -4,10 +4,10 @@ function Get-ScudoGuiThemeDefinition {
     return [ordered]@{
         BgMain              = '#2B3031'
         BgSurface           = '#3B4243'
-        BgSurfaceSelected   = '#46504F'
+        BgSurfaceSelected   = '#4A5453'
         TextPrimary         = '#EAD6B8'
-        TextMuted           = '#B8A78D'
-        Border              = '#546160'
+        TextMuted           = '#C4B392'
+        Border              = '#5A6765'
         BorderStrong        = '#81A884'
         AccentPrimary       = '#81A884'
         AccentPrimaryHover  = '#92BC95'
@@ -154,6 +154,38 @@ function Get-ScudoGuiSummaryCounts {
     }
 
     return [pscustomobject]$counts
+}
+
+function New-ScudoGuiComboItem {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Id,
+
+        [Parameter(Mandatory)]
+        [string]$Title
+    )
+
+    return [pscustomobject]@{
+        Id    = $Id
+        Title = $Title
+    }
+}
+
+function Get-ScudoGuiComboItemId {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Item
+    )
+
+    if ($null -ne $Item -and $Item.GetType().FullName -eq 'System.Windows.Controls.ComboBoxItem') {
+        return [string]$Item.Tag
+    }
+
+    if ($null -ne $Item.PSObject.Properties['Id']) {
+        return [string]$Item.Id
+    }
+
+    return [string]$Item
 }
 
 function Get-ScudoGuiFilteredControls {
@@ -467,17 +499,13 @@ function Show-ScudoGui {
             $CardRef.Border.Background = $window.Resources['BgSurfaceSelectedBrush']
             $CardRef.Border.BorderBrush = $window.Resources['BorderStrongBrush']
             $CardRef.Title.Foreground = $window.Resources['TextPrimaryBrush']
-            $CardRef.Meta.Foreground = $window.Resources['AccentPrimaryBrush']
-            $CardRef.Summary.Foreground = $window.Resources['TextPrimaryBrush']
-            $CardRef.Chevron.Foreground = $window.Resources['AccentPrimaryBrush']
+            $CardRef.Meta.Foreground = $window.Resources['TextPrimaryBrush']
         }
         else {
-            $CardRef.Border.Background = $window.Resources['BgSurfaceBrush']
+            $CardRef.Border.Background = [System.Windows.Media.Brushes]::Transparent
             $CardRef.Border.BorderBrush = $window.Resources['BorderBrush']
             $CardRef.Title.Foreground = $window.Resources['TextPrimaryBrush']
             $CardRef.Meta.Foreground = $window.Resources['TextMutedBrush']
-            $CardRef.Summary.Foreground = $window.Resources['TextPrimaryBrush']
-            $CardRef.Chevron.Foreground = $window.Resources['TextMutedBrush']
         }
     }
 
@@ -554,80 +582,69 @@ function Show-ScudoGui {
         )
 
         $button = New-Object System.Windows.Controls.Button
-        $button.Style = $window.Resources['ControlCardButtonStyle']
+        $button.Style = $window.Resources['ControlRowButtonStyle']
         $button.Tag = $Control.Id
 
         $border = New-Object System.Windows.Controls.Border
-        $border.CornerRadius = [System.Windows.CornerRadius]::new(10)
-        $border.BorderThickness = [System.Windows.Thickness]::new(1)
-        $border.Padding = [System.Windows.Thickness]::new(14)
-        $border.Margin = [System.Windows.Thickness]::new(0, 0, 0, 10)
-        $border.Background = $window.Resources['BgSurfaceBrush']
+        $border.CornerRadius = [System.Windows.CornerRadius]::new(0)
+        $border.BorderThickness = [System.Windows.Thickness]::new(0, 0, 0, 1)
+        $border.Padding = [System.Windows.Thickness]::new(14, 0, 14, 0)
+        $border.Margin = [System.Windows.Thickness]::new(0, 0, 0, -1)
+        $border.Height = 44
+        $border.Background = [System.Windows.Media.Brushes]::Transparent
         $border.BorderBrush = $window.Resources['BorderBrush']
 
         $grid = New-Object System.Windows.Controls.Grid
-        $null = $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::Auto }))
         $null = $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star) }))
         $null = $grid.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{ Width = [System.Windows.GridLength]::Auto }))
 
-        $badgeBorder = New-Object System.Windows.Controls.Border
-        $badgeBorder.Background = $window.Resources[(Get-ScudoGuiStatusResourceKey -Status $Status)]
-        $badgeBorder.CornerRadius = [System.Windows.CornerRadius]::new(999)
-        $badgeBorder.Padding = [System.Windows.Thickness]::new(10, 5, 10, 5)
-        $badgeBorder.Margin = [System.Windows.Thickness]::new(0, 4, 12, 0)
-        $badgeBorder.VerticalAlignment = [System.Windows.VerticalAlignment]::Top
-        [System.Windows.Controls.Grid]::SetColumn($badgeBorder, 0)
-
-        $badgeText = New-Object System.Windows.Controls.TextBlock
-        $badgeText.Text = Get-ScudoGuiStatusText -Status $Status
-        $badgeText.FontSize = 11
-        $badgeText.FontWeight = [System.Windows.FontWeights]::Bold
-        $badgeText.Foreground = $window.Resources['BgMainBrush']
-        $badgeBorder.Child = $badgeText
-
         $contentStack = New-Object System.Windows.Controls.StackPanel
         $contentStack.Orientation = [System.Windows.Controls.Orientation]::Vertical
-        [System.Windows.Controls.Grid]::SetColumn($contentStack, 1)
+        $contentStack.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        [System.Windows.Controls.Grid]::SetColumn($contentStack, 0)
 
         $title = New-Object System.Windows.Controls.TextBlock
         $title.Text = $Control.Title
-        $title.FontSize = 16
+        $title.FontSize = 13
         $title.FontWeight = [System.Windows.FontWeights]::SemiBold
         $title.Foreground = $window.Resources['TextPrimaryBrush']
-        $title.TextWrapping = [System.Windows.TextWrapping]::Wrap
+        $title.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
 
         $section = $sectionMap[$Control.SectionId]
         $sectionTitle = if ($null -ne $section) { $section.Title } else { $Control.SectionId }
 
         $meta = New-Object System.Windows.Controls.TextBlock
-        $meta.Text = ('{0} / {1} / {2}' -f $sectionTitle, (Get-ScudoGuiTierLabel -Tier $Control.RecommendationTier), (Get-ScudoGuiAutomationLabel -AutomationLevel $Control.AutomationLevel))
-        $meta.Margin = [System.Windows.Thickness]::new(0, 5, 0, 0)
-        $meta.FontSize = 12
+        $meta.Text = ('{0} / {1}' -f $sectionTitle, (Get-ScudoGuiTierLabel -Tier $Control.RecommendationTier))
+        $meta.Margin = [System.Windows.Thickness]::new(0, 3, 0, 0)
+        $meta.FontSize = 10.5
         $meta.Foreground = $window.Resources['TextMutedBrush']
-        $meta.TextWrapping = [System.Windows.TextWrapping]::Wrap
+        $meta.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
 
-        $summary = New-Object System.Windows.Controls.TextBlock
-        $summary.Text = $Status.Summary
-        $summary.Margin = [System.Windows.Thickness]::new(0, 7, 0, 0)
-        $summary.FontSize = 13
-        $summary.Foreground = $window.Resources['TextPrimaryBrush']
-        $summary.TextWrapping = [System.Windows.TextWrapping]::Wrap
+        $statusBadge = New-Object System.Windows.Controls.Border
+        $statusBadge.Background = $window.Resources[(Get-ScudoGuiStatusResourceKey -Status $Status)]
+        $statusBadge.CornerRadius = [System.Windows.CornerRadius]::new(2)
+        $statusBadge.Padding = [System.Windows.Thickness]::new(8, 2, 8, 2)
+        $statusBadge.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Right
+        $statusBadge.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        [System.Windows.Controls.Grid]::SetColumn($statusBadge, 1)
+
+        $statusText = New-Object System.Windows.Controls.TextBlock
+        $statusText.Text = Get-ScudoGuiStatusText -Status $Status
+        $statusText.FontSize = 10
+        $statusText.FontWeight = [System.Windows.FontWeights]::Bold
+        $statusText.Foreground = if ($Status.State -in @('already-configured', 'needs-action', 'pending-reboot', 'advisory')) {
+            $window.Resources['BgMainBrush']
+        }
+        else {
+            $window.Resources['TextPrimaryBrush']
+        }
+        $statusBadge.Child = $statusText
 
         $contentStack.Children.Add($title) | Out-Null
         $contentStack.Children.Add($meta) | Out-Null
-        $contentStack.Children.Add($summary) | Out-Null
 
-        $chevron = New-Object System.Windows.Controls.TextBlock
-        $chevron.Text = '>'
-        $chevron.Margin = [System.Windows.Thickness]::new(12, 2, 0, 0)
-        $chevron.FontSize = 18
-        $chevron.Foreground = $window.Resources['TextMutedBrush']
-        $chevron.VerticalAlignment = [System.Windows.VerticalAlignment]::Top
-        [System.Windows.Controls.Grid]::SetColumn($chevron, 2)
-
-        $grid.Children.Add($badgeBorder) | Out-Null
         $grid.Children.Add($contentStack) | Out-Null
-        $grid.Children.Add($chevron) | Out-Null
+        $grid.Children.Add($statusBadge) | Out-Null
         $border.Child = $grid
         $button.Content = $border
 
@@ -637,12 +654,12 @@ function Show-ScudoGui {
         })
 
         return @{
-            Button  = $button
-            Border  = $border
-            Title   = $title
-            Meta    = $meta
-            Summary = $summary
-            Chevron = $chevron
+            Button     = $button
+            Border     = $border
+            Title      = $title
+            Meta       = $meta
+            StatusBadge = $statusBadge
+            StatusText = $statusText
         }
     }
 
@@ -899,40 +916,38 @@ function Show-ScudoGui {
     })
 
     $sectionChoices = @(
-        [pscustomobject]@{ Id = 'all'; Title = 'All sections' }
+        (New-ScudoGuiComboItem -Id 'all' -Title 'All sections')
     ) + @(
         Get-ScudoSectionCatalog |
             Sort-Object DisplayRank |
             ForEach-Object {
-                [pscustomobject]@{
-                    Id    = $_.Id
-                    Title = $_.Title
-                }
+                New-ScudoGuiComboItem -Id $_.Id -Title $_.Title
             }
     )
     $sectionComboBox.ItemsSource = $sectionChoices
-    $sectionComboBox.DisplayMemberPath = 'Title'
     $sectionComboBox.SelectedIndex = 0
 
     $trackChoices = @(
-        [pscustomobject]@{ Id = 'all'; Title = 'All tracks' }
-        [pscustomobject]@{ Id = 'baseline'; Title = 'Baseline' }
-        [pscustomobject]@{ Id = 'strict'; Title = 'Strict' }
-        [pscustomobject]@{ Id = 'guided'; Title = 'Guided' }
-        [pscustomobject]@{ Id = 'optional'; Title = 'Optional apps' }
+        (New-ScudoGuiComboItem -Id 'all' -Title 'All tracks')
+        (New-ScudoGuiComboItem -Id 'baseline' -Title 'Baseline')
+        (New-ScudoGuiComboItem -Id 'strict' -Title 'Strict')
+        (New-ScudoGuiComboItem -Id 'guided' -Title 'Guided')
+        (New-ScudoGuiComboItem -Id 'optional' -Title 'Optional apps')
     )
     $trackComboBox.ItemsSource = $trackChoices
-    $trackComboBox.DisplayMemberPath = 'Title'
     $trackComboBox.SelectedIndex = 0
 
     if (Test-ScudoAdministrator) {
         $sessionBadgeText.Text = 'Elevated session'
         $sessionBadge.Background = $window.Resources['AccentPrimaryBrush']
+        $sessionBadge.BorderThickness = [System.Windows.Thickness]::new(0)
         $sessionBadgeText.Foreground = $window.Resources['BgMainBrush']
     }
     else {
         $sessionBadgeText.Text = 'Standard session'
-        $sessionBadge.Background = $window.Resources['AccentDangerBrush']
+        $sessionBadge.Background = $window.Resources['BgSurfaceBrush']
+        $sessionBadge.BorderBrush = $window.Resources['BorderBrush']
+        $sessionBadge.BorderThickness = [System.Windows.Thickness]::new(1)
         $sessionBadgeText.Foreground = $window.Resources['TextPrimaryBrush']
     }
 
@@ -943,14 +958,14 @@ function Show-ScudoGui {
 
     $sectionComboBox.Add_SelectionChanged({
         if ($null -ne $sectionComboBox.SelectedItem) {
-            $guiState.SectionId = [string]$sectionComboBox.SelectedItem.Id
+            $guiState.SectionId = Get-ScudoGuiComboItemId -Item $sectionComboBox.SelectedItem
             & $renderControlList
         }
     })
 
     $trackComboBox.Add_SelectionChanged({
         if ($null -ne $trackComboBox.SelectedItem) {
-            $guiState.TierFilter = [string]$trackComboBox.SelectedItem.Id
+            $guiState.TierFilter = Get-ScudoGuiComboItemId -Item $trackComboBox.SelectedItem
             & $renderControlList
         }
     })

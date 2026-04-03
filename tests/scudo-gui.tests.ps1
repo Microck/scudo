@@ -66,6 +66,14 @@ Describe 'scudo gui helpers' {
         @($searchControls).Count | Should -BeGreaterThan 0
     }
 
+    It 'creates combo items with stable ids and labels for the gui filters' {
+        $item = New-ScudoGuiComboItem -Id 'strict' -Title 'Strict'
+
+        $item.Id | Should -Be 'strict'
+        $item.Title | Should -Be 'Strict'
+        (Get-ScudoGuiComboItemId -Item $item) | Should -Be 'strict'
+    }
+
     It 'maps action labels for the gui detail footer' {
         $controlMap = @{}
         foreach ($control in Get-ScudoControlCatalog) {

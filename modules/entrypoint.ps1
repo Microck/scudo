@@ -2,8 +2,15 @@ Set-StrictMode -Version Latest
 
 function Get-ScudoParsedArguments {
     param(
-        [string[]]$Arguments
+        [string[]]$Arguments = @()
     )
+
+    $argumentsList = New-Object System.Collections.Generic.List[string]
+    foreach ($argument in $Arguments) {
+        if ($null -ne $argument) {
+            $argumentsList.Add([string]$argument)
+        }
+    }
 
     $parsed = [ordered]@{
         Help      = $false
@@ -19,8 +26,8 @@ function Get-ScudoParsedArguments {
         Cli       = $false
     }
 
-    for ($index = 0; $index -lt $Arguments.Count; $index += 1) {
-        switch ($Arguments[$index]) {
+    for ($index = 0; $index -lt $argumentsList.Count; $index += 1) {
+        switch ($argumentsList[$index]) {
             '--help' {
                 $parsed.Help = $true
             }
@@ -41,19 +48,19 @@ function Get-ScudoParsedArguments {
             }
             '--preset' {
                 $index += 1
-                $parsed.Preset = $Arguments[$index]
+                $parsed.Preset = $argumentsList[$index]
             }
             '--show' {
                 $index += 1
-                $parsed.Show = $Arguments[$index]
+                $parsed.Show = $argumentsList[$index]
             }
             '--action' {
                 $index += 1
-                $parsed.Action = $Arguments[$index]
+                $parsed.Action = $argumentsList[$index]
             }
             '--control-id' {
                 $index += 1
-                $parsed.ControlId = $Arguments[$index]
+                $parsed.ControlId = $argumentsList[$index]
             }
             '--no-pause' {
                 $parsed.NoPause = $true

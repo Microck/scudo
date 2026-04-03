@@ -2,39 +2,41 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="scudo"
-        Width="1480"
-        Height="900"
-        MinWidth="1260"
-        MinHeight="800"
-        WindowStartupLocation="CenterScreen"
+        MinWidth="1100"
+        MinHeight="720"
+        Width="1296"
+        Height="836"
         ResizeMode="CanResize"
+        SnapsToDevicePixels="True"
+        WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         Background="{DynamicResource BgMainBrush}"
-        Foreground="{DynamicResource TextPrimaryBrush}"
-        SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display"
-        TextOptions.TextRenderingMode="ClearType">
+        Foreground="{DynamicResource TextPrimaryBrush}">
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome ResizeBorderThickness="6"
-                            CaptionHeight="44"
-                            CornerRadius="14"
+        <shell:WindowChrome ResizeBorderThickness="5"
+                            CaptionHeight="32"
+                            CornerRadius="8"
                             GlassFrameThickness="0"
                             UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+        <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <Style x:Key="TitleBarButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
-            <Setter Property="FontFamily" Value="Segoe UI Symbol" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8">
+                        <Border Background="{TemplateBinding Background}">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
@@ -44,58 +46,45 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{DynamicResource BgSurfaceSelectedBrush}" />
-                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource AccentPrimaryBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{DynamicResource BgMainBrush}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="16,10" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource TitleBarButton}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentPrimaryHoverBrush}" />
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentPrimaryPressedBrush}" />
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Opacity" Value="0.45" />
+                    <Setter Property="Background" Value="{DynamicResource AccentDangerBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+        <Style x:Key="StatusCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="MinWidth" Value="76" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="10">
+                                CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
@@ -116,16 +105,19 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Background" Value="{DynamicResource AccentDangerBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource AccentPrimaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BgMainBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentDangerHoverBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource AccentPrimaryHoverBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryHoverBrush}" />
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentDangerPressedBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource AccentPrimaryPressedBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryPressedBrush}" />
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.45" />
@@ -133,72 +125,187 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Padding" Value="14,8" />
-            <Setter Property="MinWidth" Value="112" />
-            <Setter Property="Height" Value="36" />
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentDangerBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentDangerBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentDangerBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentDangerPressedBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentDangerPressedBrush}" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GhostActionStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="GhostBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="GhostBorder"
+                                        Property="Background"
+                                        Value="{DynamicResource BgSurfaceSelectedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="FontSize" Value="12" />
         </Style>
 
-        <Style x:Key="FilterTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource BgMainBrush}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="CaretBrush" Value="{DynamicResource AccentPrimaryBrush}" />
-        </Style>
-
         <Style x:Key="FilterComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource BgMainBrush}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="10,6" />
-            <Setter Property="FontSize" Value="13" />
-        </Style>
-
-        <Style x:Key="PanelCardStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="18" />
-        </Style>
-
-        <Style x:Key="MetricCardStyle" TargetType="Border" BasedOn="{StaticResource PanelCardStyle}">
-            <Setter Property="Padding" Value="16,15" />
-            <Setter Property="Margin" Value="0,0,12,0" />
-        </Style>
-
-        <Style x:Key="InsetCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource BgMainBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="14" />
-            <Setter Property="Margin" Value="0,0,0,14" />
-        </Style>
-
-        <Style x:Key="SectionCaptionStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
-        </Style>
-
-        <Style x:Key="BodyCopyStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Background="Transparent"
+                                          BorderThickness="0">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="28" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Margin="10,0,8,0"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Left"
+                                                   Text="{Binding SelectedItem.Title, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=''}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="&#xE70D;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource TextMutedBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </ToggleButton>
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Margin="0,4,0,0"
+                                        Background="{DynamicResource BgSurfaceBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <ScrollViewer MaxHeight="320">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}">
+                            <TextBlock Text="{Binding Title}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="{DynamicResource BgSurfaceSelectedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="{DynamicResource BgSurfaceSelectedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style x:Key="SectionCopyStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="LineHeight" Value="22" />
         </Style>
 
-        <Style x:Key="FilterLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource SectionCaptionStyle}">
-            <Setter Property="Margin" Value="0,0,0,7" />
+        <Style x:Key="DetailSectionStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="0,16,0,16" />
         </Style>
 
-        <Style x:Key="ControlCardButtonStyle" TargetType="Button">
+        <Style x:Key="DetailSectionHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="DetailBodyStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="ControlRowButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
@@ -217,440 +324,340 @@
     <Border Background="{DynamicResource BgMainBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="1"
-            CornerRadius="14">
+            CornerRadius="8">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="44" />
+                <RowDefinition Height="32" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="30" />
+                <RowDefinition Height="52" />
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0"
-                    Background="{DynamicResource BgSurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="0,0,0,1"
-                    CornerRadius="14,14,0,0">
-                <Grid x:Name="TitleBarDragZone">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="44" />
-                        <ColumnDefinition Width="44" />
-                    </Grid.ColumnDefinitions>
+            <Grid Grid.Row="0"
+                  x:Name="TitleBarDragZone"
+                  Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Horizontal"
-                                VerticalAlignment="Center"
-                                Margin="18,0,0,0">
-                        <TextBlock Text="scudo"
-                                   FontSize="15"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="  "
-                                   Foreground="{DynamicResource TextMutedBrush}" />
-                        <TextBlock Text="windows 11 hardening"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource TextMutedBrush}" />
-                    </StackPanel>
+                <TextBlock Grid.Column="0"
+                           Text="SCUDO"
+                           Margin="14,0,0,0"
+                           VerticalAlignment="Center"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextMutedBrush}" />
 
-                    <Border x:Name="SessionBadge"
-                            Grid.Column="1"
-                            Margin="0,8,10,8"
-                            Padding="10,4"
-                            CornerRadius="999"
-                            VerticalAlignment="Center">
-                        <TextBlock x:Name="SessionBadgeText"
-                                   FontSize="11"
-                                   FontWeight="SemiBold" />
-                    </Border>
+                <Border x:Name="SessionBadge"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Margin="0,0,10,0"
+                        Padding="8,3"
+                        CornerRadius="3">
+                    <TextBlock x:Name="SessionBadgeText"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource BgMainBrush}" />
+                </Border>
 
-                    <Button x:Name="MinimizeButton"
-                            Grid.Column="2"
-                            Style="{StaticResource TitleBarButtonStyle}"
-                            Content="_" />
-                    <Button x:Name="CloseButton"
-                            Grid.Column="3"
-                            Style="{StaticResource TitleBarButtonStyle}"
-                            Content="X" />
-                </Grid>
-            </Border>
+                <Button x:Name="MinimizeButton"
+                        Grid.Column="2"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Content="&#xE921;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="10"
+                        Style="{StaticResource TitleBarButton}" />
+                <Button x:Name="CloseButton"
+                        Grid.Column="3"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Content="&#xE8BB;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="10"
+                        Style="{StaticResource CloseButtonStyle}" />
+            </Grid>
 
             <Grid Grid.Row="1"
-                  Margin="24,22,24,18">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+                  Margin="18,10,18,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel>
-                        <TextBlock Text="Windows 11 hardening control center"
-                                   FontSize="24"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Review state, understand the tradeoffs, and apply controls from one restrained surface."
-                                   Margin="0,6,0,0"
-                                   FontSize="13"
-                                   Foreground="{DynamicResource TextMutedBrush}" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom">
-                        <Button x:Name="ExportReportButton"
-                                Style="{StaticResource ToolbarButtonStyle}"
-                                Content="Export report"
-                                Margin="0,0,10,0" />
-                        <Button x:Name="OpenReportsButton"
-                                Style="{StaticResource ToolbarButtonStyle}"
-                                Content="Open reports"
-                                Margin="0,0,10,0" />
-                        <Button x:Name="OpenCliButton"
-                                Style="{StaticResource ToolbarButtonStyle}"
-                                Content="Open CLI" />
-                    </StackPanel>
-                </Grid>
-
-                <UniformGrid Grid.Row="1"
-                             Columns="4"
-                             Margin="0,18,0,0">
-                    <Border Style="{StaticResource MetricCardStyle}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="configured"
-                                       Style="{StaticResource SectionCaptionStyle}" />
-                            <TextBlock x:Name="ConfiguredCountText"
-                                       Grid.Row="1"
-                                       Margin="0,10,0,0"
-                                       FontSize="30"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource AccentPrimaryBrush}" />
-                        </Grid>
-                    </Border>
-
-                    <Border Style="{StaticResource MetricCardStyle}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="needs action"
-                                       Style="{StaticResource SectionCaptionStyle}" />
-                            <TextBlock x:Name="NeedsActionCountText"
-                                       Grid.Row="1"
-                                       Margin="0,10,0,0"
-                                       FontSize="30"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                        </Grid>
-                    </Border>
-
-                    <Border Style="{StaticResource MetricCardStyle}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="reboot pending"
-                                       Style="{StaticResource SectionCaptionStyle}" />
-                            <TextBlock x:Name="RebootCountText"
-                                       Grid.Row="1"
-                                       Margin="0,10,0,0"
-                                       FontSize="30"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource StatusRebootBrush}" />
-                        </Grid>
-                    </Border>
-
-                    <Border Style="{StaticResource MetricCardStyle}" Margin="0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="guidance"
-                                       Style="{StaticResource SectionCaptionStyle}" />
-                            <TextBlock x:Name="GuidanceCountText"
-                                       Grid.Row="1"
-                                       Margin="0,10,0,0"
-                                       FontSize="30"
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <Border Style="{StaticResource StatusCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="CONFIGURED"
+                                       FontSize="10"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" />
-                        </Grid>
+                            <TextBlock x:Name="ConfiguredCountText"
+                                       Text="--"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource StatusConfiguredBrush}" />
+                        </StackPanel>
                     </Border>
-                </UniformGrid>
+                    <Border Style="{StaticResource StatusCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="NEEDS ACTION"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                            <TextBlock x:Name="NeedsActionCountText"
+                                       Text="--"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource StatusActionBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource StatusCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="REBOOT REQ."
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                            <TextBlock x:Name="RebootCountText"
+                                       Text="--"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource StatusRebootBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource StatusCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="GUIDANCE"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                            <TextBlock x:Name="GuidanceCountText"
+                                       Text="--"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource StatusAdvisoryBrush}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Margin="20,4,0,0"
+                            VerticalAlignment="Top">
+                    <TextBlock Text="Scudo Hardening"
+                               FontSize="22"
+                               FontWeight="Bold" />
+                    <TextBlock Text="Inspect state, read the rationale, and apply only the controls you actually want."
+                               Margin="0,5,0,0"
+                               FontSize="12.5"
+                               Style="{StaticResource SectionCopyStyle}" />
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="2"
-                  Margin="24,0,24,24">
+                  Margin="18,0,18,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.08*" />
-                    <ColumnDefinition Width="22" />
-                    <ColumnDefinition Width="0.92*" />
+                    <ColumnDefinition Width="432" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <Grid Grid.Column="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0"
-                            Style="{StaticResource PanelCardStyle}"
-                            Margin="0,0,0,16">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="catalog filters"
-                                               FontSize="18"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                                    <TextBlock Text="Keep common decisions visible. Push narrow filtering one step down."
-                                               Margin="0,4,0,0"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextMutedBrush}" />
-                                </StackPanel>
-                                <Button x:Name="RefreshStatusButton"
-                                        Grid.Column="1"
-                                        Style="{StaticResource PrimaryButtonStyle}"
-                                        Content="Refresh status"
-                                        MinWidth="132"
-                                        Height="40"
-                                        VerticalAlignment="Center" />
-                            </Grid>
-
-                            <Grid Grid.Row="1"
-                                  Margin="0,18,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1.25*" />
-                                    <ColumnDefinition Width="12" />
-                                    <ColumnDefinition Width="0.9*" />
-                                    <ColumnDefinition Width="12" />
-                                    <ColumnDefinition Width="0.9*" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Search"
-                                               Style="{StaticResource FilterLabelStyle}" />
-                                    <TextBox x:Name="SearchTextBox"
-                                             Style="{StaticResource FilterTextBoxStyle}"
-                                             Height="40"
-                                             VerticalContentAlignment="Center"
-                                             ToolTip="Search controls" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Section"
-                                               Style="{StaticResource FilterLabelStyle}" />
-                                    <ComboBox x:Name="SectionComboBox"
-                                              Style="{StaticResource FilterComboBoxStyle}"
-                                              Height="40"
-                                              VerticalContentAlignment="Center" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="4">
-                                    <TextBlock Text="Track"
-                                               Style="{StaticResource FilterLabelStyle}" />
-                                    <ComboBox x:Name="TrackComboBox"
-                                              Style="{StaticResource FilterComboBoxStyle}"
-                                              Height="40"
-                                              VerticalContentAlignment="Center" />
-                                </StackPanel>
-                            </Grid>
+                    <StackPanel Grid.Row="0"
+                                Margin="0,0,0,14">
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="Security Controls"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <Button x:Name="RefreshStatusButton"
+                                    HorizontalAlignment="Right"
+                                    Width="32"
+                                    Height="32"
+                                    Padding="0"
+                                    FontFamily="Segoe MDL2 Assets"
+                                    Content="&#xE72C;"
+                                    Style="{StaticResource ActionButtonStyle}" />
                         </Grid>
-                    </Border>
+
+                        <TextBlock Text="Filter the catalog, inspect the rationale, and apply only what you intend."
+                                   Margin="0,0,0,12"
+                                   Style="{StaticResource SectionCopyStyle}" />
+
+                        <TextBox x:Name="SearchTextBox"
+                                 Height="34"
+                                 Margin="0,0,0,10"
+                                 Style="{StaticResource SearchTextBoxStyle}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="SectionComboBox"
+                                      Grid.Column="0"
+                                      Height="34"
+                                      Style="{StaticResource FilterComboBoxStyle}" />
+                            <ComboBox x:Name="TrackComboBox"
+                                      Grid.Column="2"
+                                      Height="34"
+                                      Style="{StaticResource FilterComboBoxStyle}" />
+                        </Grid>
+                    </StackPanel>
 
                     <Border Grid.Row="1"
-                            Style="{StaticResource PanelCardStyle}">
+                            Background="{DynamicResource BgSurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1,1,1,0"
+                            CornerRadius="4,4,0,0"
+                            Padding="14,9">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <Grid Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel>
-                                    <TextBlock Text="control catalog"
-                                               FontSize="18"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                                    <TextBlock x:Name="ControlCountText"
-                                               Margin="0,4,0,0"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextMutedBrush}" />
-                                </StackPanel>
-
-                                <Border Grid.Column="1"
-                                        Padding="10,6"
-                                        CornerRadius="999"
-                                        Background="{DynamicResource BgMainBrush}"
-                                        BorderBrush="{DynamicResource BorderBrush}"
-                                        BorderThickness="1"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="Select a control to inspect details"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource TextMutedBrush}" />
-                                </Border>
-                            </Grid>
-
-                            <Grid Grid.Row="1">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <StackPanel x:Name="ControlListPanel" />
-                                </ScrollViewer>
-                                <TextBlock x:Name="EmptyStateText"
-                                           Text="No controls match the current filters."
-                                           Visibility="Collapsed"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontSize="14"
-                                           Foreground="{DynamicResource TextMutedBrush}" />
-                            </Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="88" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="CONTROL NAME"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="STATUS"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       HorizontalAlignment="Right" />
                         </Grid>
                     </Border>
+
+                    <Border Grid.Row="2"
+                            Background="{DynamicResource BgSurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="0,0,4,4">
+                        <Grid>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="ControlListPanel"
+                                            Margin="0" />
+                            </ScrollViewer>
+                            <TextBlock x:Name="EmptyStateText"
+                                       Text="No controls found matching filters."
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Grid.Row="3"
+                               x:Name="ControlCountText"
+                               Margin="0,10,10,8"
+                               HorizontalAlignment="Right"
+                               FontSize="10"
+                               Foreground="{DynamicResource TextMutedBrush}" />
                 </Grid>
 
                 <Border Grid.Column="2"
-                        Style="{StaticResource PanelCardStyle}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
+                        Background="{DynamicResource BgSurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="24">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <TextBlock x:Name="DetailTitleText"
-                                       Text="Select a control"
-                                       FontSize="24"
-                                       FontWeight="SemiBold"
-                                       TextWrapping="Wrap"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock x:Name="DetailMetaText"
-                                       Margin="0,8,0,0"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="Select a control to view details"
+                                       FontSize="22"
+                                       FontWeight="Bold"
                                        TextWrapping="Wrap" />
-                            <Border x:Name="DetailStateBadge"
-                                    Width="152"
-                                    Margin="0,16,0,0"
-                                    Padding="12,6"
-                                    CornerRadius="999">
-                                <TextBlock x:Name="DetailStateText"
-                                           FontSize="12"
-                                           FontWeight="Bold"
-                                           HorizontalAlignment="Center"
-                                           Foreground="{DynamicResource BgMainBrush}" />
-                            </Border>
+
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,6,0,18">
+                                <TextBlock x:Name="DetailMetaText"
+                                           Text="Section: N/A | Track: N/A"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextMutedBrush}" />
+                                <Border x:Name="DetailStateBadge"
+                                        Margin="14,0,0,0"
+                                        Background="{DynamicResource StatusUnsupportedBrush}"
+                                        CornerRadius="3"
+                                        Padding="8,3">
+                                    <TextBlock x:Name="DetailStateText"
+                                               Text="UNKNOWN"
+                                               FontSize="10"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource BgMainBrush}" />
+                                </Border>
+                            </StackPanel>
+
                             <TextBlock x:Name="DetailSummaryText"
-                                       Margin="0,14,0,0"
-                                       FontSize="15"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="Detailed information about the selected security control will appear here."
+                                       Margin="0,0,0,28"
                                        TextWrapping="Wrap"
-                                       LineHeight="23" />
-                        </StackPanel>
+                                       Style="{StaticResource DetailBodyStyle}" />
 
-                        <ScrollViewer Grid.Row="1"
-                                      Margin="0,22,0,18"
-                                      VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <Border Style="{StaticResource InsetCardStyle}">
+                                <Border Style="{StaticResource DetailSectionStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="what it does"
-                                                   Style="{StaticResource SectionCaptionStyle}" />
+                                        <TextBlock Text="WHAT IT DOES"
+                                                   Style="{StaticResource DetailSectionHeadingStyle}" />
                                         <TextBlock x:Name="WhatItDoesText"
-                                                   Margin="0,8,0,0"
-                                                   Style="{StaticResource BodyCopyStyle}" />
+                                                   Text="-"
+                                                   Style="{StaticResource DetailBodyStyle}" />
                                     </StackPanel>
                                 </Border>
 
-                                <Border Style="{StaticResource InsetCardStyle}">
+                                <Border Style="{StaticResource DetailSectionStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="why apply it"
-                                                   Style="{StaticResource SectionCaptionStyle}" />
+                                        <TextBlock Text="WHY APPLY IT"
+                                                   Style="{StaticResource DetailSectionHeadingStyle}" />
                                         <TextBlock x:Name="WhyApplyText"
-                                                   Margin="0,8,0,0"
-                                                   Style="{StaticResource BodyCopyStyle}" />
+                                                   Text="-"
+                                                   Style="{StaticResource DetailBodyStyle}" />
                                     </StackPanel>
                                 </Border>
 
-                                <Border Style="{StaticResource InsetCardStyle}">
+                                <Border Style="{StaticResource DetailSectionStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="why skip it"
-                                                   Style="{StaticResource SectionCaptionStyle}" />
+                                        <TextBlock Text="POTENTIAL DOWNSIDES"
+                                                   Style="{StaticResource DetailSectionHeadingStyle}" />
                                         <TextBlock x:Name="WhySkipText"
-                                                   Margin="0,8,0,0"
-                                                   Style="{StaticResource BodyCopyStyle}" />
+                                                   Text="-"
+                                                   Style="{StaticResource DetailBodyStyle}" />
                                     </StackPanel>
                                 </Border>
 
-                                <Border Style="{StaticResource InsetCardStyle}">
+                                <Border Style="{StaticResource DetailSectionStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="rollback"
-                                                   Style="{StaticResource SectionCaptionStyle}" />
+                                        <TextBlock Text="ROLLBACK"
+                                                   Style="{StaticResource DetailSectionHeadingStyle}" />
                                         <TextBlock x:Name="RollbackNoteText"
-                                                   Margin="0,8,0,0"
-                                                   Style="{StaticResource BodyCopyStyle}" />
+                                                   Text="-"
+                                                   Style="{StaticResource DetailBodyStyle}" />
                                     </StackPanel>
                                 </Border>
 
-                                <Border Style="{StaticResource InsetCardStyle}" Margin="0">
+                                <Border Style="{StaticResource DetailSectionStyle}"
+                                        Padding="0,16,0,0">
                                     <StackPanel>
-                                        <TextBlock Text="status notes"
-                                                   Style="{StaticResource SectionCaptionStyle}" />
+                                        <TextBlock Text="STATUS NOTES"
+                                                   Style="{StaticResource DetailSectionHeadingStyle}" />
                                         <TextBlock x:Name="StatusNotesText"
-                                                   Margin="0,8,0,0"
-                                                   Style="{StaticResource BodyCopyStyle}" />
+                                                   Text="-"
+                                                   FontStyle="Italic"
+                                                   Style="{StaticResource DetailBodyStyle}" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-                        </ScrollViewer>
-
-                        <Grid Grid.Row="2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="12" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="12" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <Button x:Name="RefreshSelectedButton"
-                                    Grid.Column="0"
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    Content="Refresh"
-                                    Height="42" />
-                            <Button x:Name="ApplyButton"
-                                    Grid.Column="2"
-                                    Style="{StaticResource PrimaryButtonStyle}"
-                                    Content="Apply"
-                                    Height="42" />
-                            <Button x:Name="RollbackButton"
-                                    Grid.Column="4"
-                                    Style="{StaticResource DangerButtonStyle}"
-                                    Content="Rollback"
-                                    Height="42" />
-                        </Grid>
-                    </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Border>
             </Grid>
 
@@ -658,13 +665,46 @@
                     Background="{DynamicResource BgSurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,1,0,0"
-                    CornerRadius="0,0,14,14">
-                <TextBlock x:Name="StatusBarText"
-                           Margin="18,0"
-                           VerticalAlignment="Center"
-                           FontSize="11"
-                           Foreground="{DynamicResource TextMutedBrush}"
-                           Text="Ready." />
+                    Padding="18,0">
+                <Grid VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="OpenCliButton"
+                                Content="Open CLI"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource ActionButtonStyle}" />
+                        <Button x:Name="OpenReportsButton"
+                                Content="Reports"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource ActionButtonStyle}" />
+                        <Button x:Name="ExportReportButton"
+                                Content="Export"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource ActionButtonStyle}" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatusBarText"
+                               Text="Ready"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextMutedBrush}" />
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                        <Button x:Name="RefreshSelectedButton"
+                                Content="Refresh"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource ActionButtonStyle}" />
+                        <Button x:Name="RollbackButton"
+                                Content="Rollback"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource DangerButtonStyle}" />
+                        <Button x:Name="ApplyButton"
+                                Content="Apply Changes"
+                                Width="120"
+                                Style="{StaticResource PrimaryButtonStyle}" />
+                    </StackPanel>
+                </Grid>
             </Border>
         </Grid>
     </Border>

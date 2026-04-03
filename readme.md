@@ -207,10 +207,6 @@ guided mode walks the catalog section by section and keeps the manual items visi
   what it does: enables simplewall filtering if simplewall is installed.
   why apply it: gives you explicit outbound filtering instead of silent default allow.
   why skip it: outbound filtering needs tuning or it will break apps.
-- `simplewall-guidance`
-  what it does: explains where outbound filtering helps and what simplewall adds.
-  why apply it: useful if you want app-level network control.
-  why skip it: there is real maintenance overhead.
 
 ### physical access
 
@@ -218,17 +214,9 @@ guided mode walks the catalog section by section and keeps the manual items visi
   what it does: blocks installation of newly attached devices unless another policy allows them.
   why apply it: helps against quick rogue-usb attacks.
   why skip it: makes normal hardware changes more annoying.
-- `public-usb-guidance`
-  what it does: explains public charging and hostile usb-device risk.
-  why apply it: useful if the machine leaves trusted desks often.
-  why skip it: this is operator awareness, not a universal windows setting.
 
 ### browser
 
-- `browser-hardening`
-  what it does: explains the browser hardening model behind hardened profiles, cookie clearing, and script restriction.
-  why apply it: the browser is the biggest practical attack surface on most personal windows systems.
-  why skip it: stronger browser hardening always trades away convenience.
 - `browser.firefox-noscript`
   what it does: force-installs noscript in firefox through policy.
   why apply it: gives you high-friction but high-value script restriction.

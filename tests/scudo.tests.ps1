@@ -79,6 +79,21 @@ Describe 'scudo control catalog' {
         }
     }
 
+    It 'does not keep removed manual-only guidance entries' {
+        $controlIds = @(
+            Get-ScudoControlCatalog |
+                Select-Object -ExpandProperty Id
+        )
+
+        @(
+            'simplewall-guidance',
+            'public-usb-guidance',
+            'browser-hardening'
+        ) | ForEach-Object {
+            $controlIds | Should -Not -Contain $_
+        }
+    }
+
     It 'defines rollback support for the isolated controls only' {
         $rollbackIds = @(
             Get-ScudoControlCatalog |
@@ -140,6 +155,50 @@ Describe 'scudo entrypoint parsing' {
         (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--show', 'strict')) -RunningOnWindows $true) | Should -BeFalse
         (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--action', 'apply', '--control-id', 'service.remote-registry.disabled')) -RunningOnWindows $true) | Should -BeFalse
         (Test-ScudoShouldLaunchGui -ParsedArguments (Get-ScudoParsedArguments -Arguments @('--gui')) -RunningOnWindows $false) | Should -BeFalse
+    }
+
+    It 'treats missing arguments as an empty argument list' {
+        $parsed = Get-ScudoParsedArguments -Arguments $null
+
+        $parsed.Help | Should -BeFalse
+        $parsed.Gui | Should -BeFalse
+        $parsed.Cli | Should -BeFalse
+    }
+}
+
+Describe 'scudo script invocation' {
+    BeforeAll {
+        $projectRoot = Split-Path -Parent $PSScriptRoot
+        $scriptPath = Join-Path -Path $projectRoot -ChildPath 'scudo.ps1'
+        . (Join-Path -Path $projectRoot -ChildPath 'modules/entrypoint.ps1')
+        $powerShellCommand = Get-Command -Name 'pwsh' -ErrorAction SilentlyContinue
+
+        if ($null -eq $powerShellCommand) {
+            $powerShellCommand = Get-Command -Name 'powershell' -ErrorAction Stop
+        }
+
+        $powerShellPath = $powerShellCommand.Source
+        $runningOnWindows = ($env:OS -eq 'Windows_NT')
+    }
+
+    It 'does not misbind --cli as a script parameter' {
+        $output = & $powerShellPath -NoProfile -ExecutionPolicy Bypass -File $scriptPath --cli --version 2>&1 | Out-String
+
+        $output | Should -Not -Match "Missing an argument for parameter 'CliArgs'"
+        $output | Should -Not -Match "Missing an argument for parameter 'RemainingArguments'"
+        $output | Should -Match '0\.2\.0'
+    }
+
+    It 'does not crash when launched without arguments' {
+        if ($runningOnWindows) {
+            { Get-ScudoParsedArguments -Arguments $null } | Should -Not -Throw
+            return
+        }
+
+        $output = & $powerShellPath -NoProfile -ExecutionPolicy Bypass -File $scriptPath 2>&1 | Out-String
+
+        $output | Should -Not -Match "The property 'Count' cannot be found on this object"
+        $output | Should -Match 'scudo only runs on Windows 11\.'
     }
 }
 
