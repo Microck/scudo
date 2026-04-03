@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/assets/scudo-logo.svg" alt="scudo logo" width="100" height="100" />
+  <img src="/assets/scudo-logo.svg" alt="scudo logo" width="150" height="150" />
 
   <h1>scudo</h1>
 
@@ -8,9 +8,6 @@
   <p>
     <img src="https://img.shields.io/badge/windows-11-111111?style=flat-square" alt="windows 11" />
     <img src="https://img.shields.io/badge/powershell-5.1%2B-111111?style=flat-square" alt="powershell 5.1+" />
-    <img src="https://img.shields.io/badge/interface-cli_%2B_gui-111111?style=flat-square" alt="cli and gui" />
-    <img src="https://img.shields.io/badge/rollback-aware-111111?style=flat-square" alt="rollback aware" />
-    <img src="https://img.shields.io/badge/optional_apps-winget-111111?style=flat-square" alt="optional apps via winget" />
   </p>
 </div>
 
