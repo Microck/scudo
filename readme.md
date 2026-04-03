@@ -79,14 +79,14 @@ scudo --no-pause
 ## menu
 
 ```text
-[1] review this pc
+[1] audit this pc
 [2] apply baseline hardening
 [3] apply strict hardening
-[4] guided hardening walkthrough
-[5] browse individual controls
-[6] optional apps and browser tools
-[7] roll back a saved change
-[8] export report
+[4] run guided walkthrough
+[5] review individual controls
+[6] manage optional apps and browser tools
+[7] restore previous changes
+[8] export results
 [0] exit
 ```
 
