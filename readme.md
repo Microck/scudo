@@ -43,6 +43,8 @@ cd scudo
 .\scudo.cmd --cli
 ```
 
+note: method 1 installs to `%localappdata%\scudo` and uses the bootstrap script for self-updates. method 2 runs the repo in-place and requires a manual `git pull` to update.
+
 ## what you get
 
 - a simple numbered menu instead of a pile of scripts
@@ -104,7 +106,7 @@ baseline currently focuses on:
 - control flow guard
 - memory integrity
 - vulnerable driver blocklist
-- telemetry reduction
+- telemetry policy and services reduction
 - remote registry disable
 
 ### strict
@@ -283,6 +285,7 @@ each report includes:
 
 ## notes
 
+- scudo v0.2.0. run `scudo --version` to confirm the installed version.
 - scudo only supports windows 11.
 - some settings are check-only or guided because windows cannot safely automate firmware decisions.
 - rollback exists only where scudo captures enough state to restore the prior setting.

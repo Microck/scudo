@@ -20,7 +20,7 @@ Workflow: `.github/workflows/windows-smoke.yml`
 What it validates:
 
 - Pester tests for catalog, reporting, and CLI surface
-- `scudo -help`
+- `scudo --help`
 - `scudo --version`
 - the explicit Windows 11 guardrail on the hosted Windows Server runner
 

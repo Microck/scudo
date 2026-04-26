@@ -240,7 +240,7 @@ function Get-ScudoGuiSchemaPath {
         [string]$Name
     )
 
-    return Join-Path -Path $script:ScudoRoot -ChildPath ("schemas/{0}" -f $Name)
+    return Join-Path -Path $script:ScudoRoot -ChildPath ("gui/{0}" -f $Name)
 }
 
 function Import-ScudoGuiWindow {
