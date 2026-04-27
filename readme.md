@@ -300,3 +300,5 @@ each report includes:
 ## testing and development
 
 see [docs/windows-testing.md](docs/windows-testing.md) for guidance on testing scudo on windows 11, including the hosted ci smoke lane and local vm lab setup.
+
+for pr and issue guidelines, see [contributing.md](contributing.md).
