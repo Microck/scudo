@@ -8,6 +8,7 @@
   <p>
     <img src="https://img.shields.io/badge/windows-11-111111?style=flat-square" alt="windows 11" />
     <img src="https://img.shields.io/badge/powershell-5.1%2B-111111?style=flat-square" alt="powershell 5.1+" />
+    <img src="https://img.shields.io/badge/version-0.2.0-111111?style=flat-square" alt="version 0.2.0" />
   </p>
 </div>
 
@@ -127,6 +128,11 @@ strict adds:
 ### guided
 
 guided mode walks the catalog section by section and keeps the manual items visible instead of hiding them.
+
+guided covers controls that require manual action or firmware access:
+
+- **firmware** — bios-password, secure-boot, kernel-dma-protection, firmware.reboot-to-uefi
+- **identity** — account.create-standard-user, account.standard-user, password-manager
 
 ## controls
 
@@ -290,3 +296,7 @@ each report includes:
 - some settings are check-only or guided because windows cannot safely automate firmware decisions.
 - rollback exists only where scudo captures enough state to restore the prior setting.
 - dns and outbound-filtering changes should be tested on the machine and network you actually use.
+
+## testing and development
+
+see [docs/windows-testing.md](docs/windows-testing.md) for guidance on testing scudo on windows 11, including the hosted ci smoke lane and local vm lab setup.
