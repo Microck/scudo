@@ -102,23 +102,14 @@ cd scudo
 ## Menu Layout
 
 ```text
-[1]  Check all controls
-[2]  Apply Control Flow Guard
-[3]  Apply ASR: Block Office child processes
-[4]  Apply ASR: Block obfuscated scripts
-[5]  Apply ASR: Block executable email content
-[6]  Apply Memory Integrity
-[7]  Apply Vulnerable Driver Blocklist
-[8]  Apply Quad9 DNS
-[9]  Apply DNS over HTTPS
-[10] Disable Remote Registry
-[11] Disable Print Spooler
-[12] Restrict new device installation
-[13] Check firmware and boot items
-[14] Install recommended apps
-[15] Show browser and account steps
-[16] Export report
-[17] Roll back a saved control state
+[1]  Audit this PC
+[2]  Apply baseline hardening
+[3]  Apply strict hardening
+[4]  Run guided walkthrough
+[5]  Review individual controls
+[6]  Manage optional apps and browser tools
+[7]  Restore previous changes
+[8]  Export results
 [0]  Exit
 ```
 
