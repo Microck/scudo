@@ -18,115 +18,89 @@
 
 `scudo` is a hardener, not a debloater. it takes the usual windows 11 hardening steps, puts them behind a dead-simple menu, and keeps the tradeoffs visible so you can decide what to apply instead of blindly flipping every switch.
 
----
+## quick start
 
-## Table of Contents
+### method 1 - powershell
 
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Install & Run](#install--run)
-- [Menu Layout](#menu-layout)
-- [Presets](#presets)
-- [Controls](#controls)
-- [Third-Party Installers](#third-party-installers)
-- [Additional Automation](#additional-automation)
-- [Project Structure](#project-structure)
-- [Important Notes](#important-notes)
-- [Testing](#testing)
-- [Contributing & Support](#contributing--support)
-
----
-
-## Features
-
-- **Check current state** of supported Windows security controls
-- **Apply** selected Windows-native hardening controls
-- **Install** recommended third-party security apps through `winget`
-- **Configure** browser, privacy, and account tooling via Windows automation paths
-- **Transcript logging** — full session logs for every Windows run
-- **State snapshots** — per-control state captured before each successful change
-- **Rollback** — revert controls that have isolated, captured prior state
-- **Reporting** — export Markdown and JSON reports of control states
-- **Guided actions** — firmware-only and physical-only steps shown with clear instructions
-
-## Quick Start
-
-### Prerequisites
-
-- **Windows 11** (target platform)
-- **PowerShell 5.1+** (included with Windows 11)
-- **Administrator rights** — required for apply and rollback actions
-- **`winget`** — needed for third-party app installation (built into Windows 11 App Installer)
-
-### Install & Run
-
-#### Method 1 — Bootstrap (recommended)
-
-Open PowerShell as Administrator and run:
+open powershell, paste this, and press enter:
 
 ```powershell
 irm https://raw.githubusercontent.com/Microck/scudo/main/get.ps1 | iex
 ```
 
-If GitHub raw is blocked, try the DoH fallback:
+if raw github is blocked on the current network, try:
 
 ```powershell
 iex (curl.exe -fsSL --doh-url https://1.1.1.1/dns-query https://raw.githubusercontent.com/Microck/scudo/main/get.ps1 | Out-String)
 ```
 
-The bootstrap downloads scudo into `%localappdata%\scudo` and opens the CLI menu immediately. Re-run to update.
+the bootstrap downloads the current repo into `%localappdata%\scudo` and opens the cli menu immediately.
 
-#### Method 2 — Local Clone
+### method 2 - local clone
 
 ```powershell
 git clone https://github.com/Microck/scudo.git
 cd scudo
-.\scudo.cmd
+.\scudo.cmd --cli
 ```
 
-### Command-Line Options
+note: method 1 installs to `%localappdata%\scudo` and uses the bootstrap script for self-updates. method 2 runs the repo in-place and requires a manual `git pull` to update.
 
-```powershell
-.\scudo.cmd --version    # Print version and exit
-.\scudo.cmd --help       # Print help text and exit
-.\scudo.cmd --check-all  # Check all controls and exit
-.\scudo.cmd --preset <baseline|strict>  # Apply a preset
-.\scudo.cmd --show <control-id|preset>  # Show details for a control
-.\scudo.cmd --export     # Export state report
-.\scudo.cmd --gui        # Launch WPF GUI
-.\scudo.cmd --cli        # Launch CLI menu
-```
+## what you get
 
-> Note: Method 1 installs to `%localappdata%\scudo` with self-update via bootstrap. Method 2 runs the repo in-place and requires a manual `git pull` to update.
+- a simple numbered menu instead of a pile of scripts
+- direct commands for checks, presets, and single-control actions
+- a WPF gui with the same control catalog and rationale
+- rollback snapshots for the settings that scudo can safely restore
+- optional app installs for bitwarden, helium, firefox, and simplewall
 
-## Menu Layout
+## command surface
 
 ```text
-[1]  Check all controls
-[2]  Apply Control Flow Guard
-[3]  Apply ASR: Block Office child processes
-[4]  Apply ASR: Block obfuscated scripts
-[5]  Apply ASR: Block executable email content
-[6]  Apply Memory Integrity
-[7]  Apply Vulnerable Driver Blocklist
-[8]  Apply Quad9 DNS
-[9]  Apply DNS over HTTPS
-[10] Disable Remote Registry
-[11] Disable Print Spooler
-[12] Restrict new device installation
-[13] Check firmware and boot items
-[14] Install recommended apps
-[15] Show browser and account steps
-[16] Export report
-[17] Roll back a saved control state
-[0]  Exit
+scudo
+scudo --check-all
+scudo --preset baseline
+scudo --preset strict
+scudo --show <control-id|preset>
+scudo --export
+scudo --gui
+scudo --cli
+scudo --version
+scudo --help
 ```
 
-## Presets
+if you want the graphical surface instead of the menu, use `scudo --gui`.
+
+<img width="1302" height="840" alt="scudo-gui" src="https://github.com/user-attachments/assets/2cd7fdb9-314b-459b-9c8d-a6df4fcee62e" />
+
+
+advanced:
+
+```text
+scudo --action apply --control-id <id>
+scudo --action rollback --control-id <id>
+scudo --no-pause
+```
+
+## menu
+
+```text
+[1] audit this pc
+[2] apply baseline hardening
+[3] apply strict hardening
+[4] run guided walkthrough
+[5] review individual controls
+[6] manage optional apps and browser tools
+[7] restore previous changes
+[8] export results
+[0] exit
+```
+
+## presets
 
 ### baseline
 
-Use this first. It keeps the higher-value, lower-friction controls together.
+use this first. it keeps the higher-value, lower-friction controls together.
 
 baseline currently focuses on:
 
@@ -138,7 +112,7 @@ baseline currently focuses on:
 
 ### strict
 
-Use this if you are willing to accept more breakage and more tuning work.
+use this if you are willing to accept more breakage and more tuning work.
 
 strict adds:
 
@@ -160,9 +134,9 @@ guided covers controls that require manual action or firmware access:
 - **firmware** — bios-password, secure-boot, kernel-dma-protection, firmware.reboot-to-uefi
 - **identity** — account.create-standard-user, account.standard-user, password-manager
 
-## Controls
+## controls
 
-Each control is described with the same three questions:
+each control is described with the same three questions:
 
 - **what it does**
 - **why apply it**
@@ -300,90 +274,31 @@ Each control is described with the same three questions:
   - **why apply it:** unlocks the firefox-specific policy controls that scudo can automate.
   - **why skip it:** only useful if you actually want firefox installed.
 
-## Third-Party Installers
+## reports
 
-The install submenu (`[14]`) supports:
+`scudo --export` writes both markdown and json reports.
 
-| Application | Description                    |
-|------------ | -------------------------------|
-| Bitwarden   | Open-source password manager   |
-| SimpleWall  | Lightweight outbound firewall  |
-| Helium      | Privacy-focused browser        |
-| Firefox     | Mozilla Firefox browser        |
+each report includes:
 
-## Additional Automation
+- state
+- section
+- tier
+- automation level
+- rollback note
+- what the control does
+- why you might apply it
+- why you might skip it
 
-Beyond the core menu controls, Scudo includes post-research automation:
+## notes
 
-- **Telemetry reduction** — minimizes telemetry policy and disables telemetry services
-- **Firefox enterprise policies** — automatically configures:
-  - Force-install NoScript extension
-  - Merge into existing `policies.json` (preserves manual edits)
-  - Clear cookies, site settings, and offline data on shutdown
-  - Disable Firefox telemetry and studies
-- **Local account creation** — creates a standard local user account
-- **SimpleWall filtering** — enables filtering via its documented CLI switch
-- **Firmware reboot** — reboots directly to firmware settings for Secure Boot enablement
+- scudo v0.2.0. run `scudo --version` to confirm the installed version.
+- scudo only supports windows 11.
+- some settings are check-only or guided because windows cannot safely automate firmware decisions.
+- rollback exists only where scudo captures enough state to restore the prior setting.
+- dns and outbound-filtering changes should be tested on the machine and network you actually use.
 
-## Project Structure
+## testing and development
 
-```
-scudo/
-├── scudo.cmd                           # Windows launcher (batch wrapper)
-├── scudo.ps1                           # Menu loop and CLI entrypoint
-├── modules/
-│   ├── control-actions.ps1             # Detection and apply logic
-│   ├── safety.ps1                      # Preflight checks, transcript logging, state handling
-│   ├── control-catalog.ps1             # Control definitions and metadata
-│   └── reporting.ps1                   # Markdown and JSON report exporter
-├── tests/
-│   ├── scudo.tests.ps1                 # Pester unit/integration tests
-│   └── scudo-cli.tests.ps1             # CLI help, version, and platform guard tests
-├── docs/
-│   └── windows-testing.md              # Windows 11 VM and Sandbox test flow
-└── .github/workflows/
-    └── windows-smoke.yml               # Hosted CI smoke coverage
-```
+see [docs/windows-testing.md](docs/windows-testing.md) for guidance on testing scudo on windows 11, including the hosted ci smoke lane and local vm lab setup.
 
-## Important Notes
-
-- **Target platform:** Windows 11 only.
-- **Administrator rights** are required for apply and rollback actions.
-- **Pending reboot guard:** Scudo blocks apply and rollback when Windows has a pending reboot.
-- **Rollback scope** is intentionally limited to isolated controls (selected registry-backed settings and service changes). The following do **not** have Scudo rollback support:
-  - App installs
-  - Defender ASR rules
-  - DNS changes
-  - Firefox policy changes
-  - Firmware actions
-  - Account creation
-- **Secure Boot and Kernel DMA** require manual firmware configuration.
-- **Helium browser** hardening is manual — policy compatibility has not been verified to the same standard as Firefox.
-- **Firefox policy automation** targets Mozilla Firefox only.
-
-### Default Paths
-
-| Item            | Default Location           |
-|---------------- | -------------------------- |
-| Reports         | `Documents\Scudo\Reports`  |
-| Logs            | `Documents\Scudo\Logs`      |
-| State snapshots | `Documents\Scudo\State`     |
-
-## Testing
-
-Scudo uses [Pester](https://pester.dev/) for testing. CI runs on GitHub Actions across `ubuntu-latest` (syntax/guardrail tests) and `windows-2025` (smoke tests).
-
-> **Note:** Hosted GitHub Actions Windows runners are Windows Server images, not Windows 11 client. Full apply/rollback validation should be performed in a Windows 11 VM. See [`docs/windows-testing.md`](docs/windows-testing.md) for the recommended test flow.
-
-To run tests locally on Windows:
-
-```powershell
-Invoke-Pester -Path .\tests\
-```
-
-## Contributing & Support
-
-- **Issues:** [https://github.com/Microck/scudo/issues](https://github.com/Microck/scudo/issues)
-- **Discussions:** [https://github.com/Microck/scudo/discussions](https://github.com/Microck/scudo/discussions)
-
-For PR and issue guidelines, see [contributing.md](contributing.md).
+for pr and issue guidelines, see [contributing.md](contributing.md).
