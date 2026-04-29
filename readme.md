@@ -124,7 +124,8 @@ baseline currently focuses on:
 - control flow guard
 - memory integrity
 - vulnerable driver blocklist
-- telemetry policy and services reduction
+- telemetry policy reduction
+- telemetry services disable
 - remote registry disable
 
 ### strict
