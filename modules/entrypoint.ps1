@@ -48,18 +48,34 @@ function Get-ScudoParsedArguments {
             }
             '--preset' {
                 $index += 1
+                if ($index -ge $argumentsList.Count) {
+                    $parsed.Preset = $null
+                    continue
+                }
                 $parsed.Preset = $argumentsList[$index]
             }
             '--show' {
                 $index += 1
+                if ($index -ge $argumentsList.Count) {
+                    $parsed.Show = $null
+                    continue
+                }
                 $parsed.Show = $argumentsList[$index]
             }
             '--action' {
                 $index += 1
+                if ($index -ge $argumentsList.Count) {
+                    $parsed.Action = $null
+                    continue
+                }
                 $parsed.Action = $argumentsList[$index]
             }
             '--control-id' {
                 $index += 1
+                if ($index -ge $argumentsList.Count) {
+                    $parsed.ControlId = $null
+                    continue
+                }
                 $parsed.ControlId = $argumentsList[$index]
             }
             '--no-pause' {

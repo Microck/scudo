@@ -42,6 +42,17 @@ Describe 'scudo internal helpers' {
 
         $selected | Should -Be 'Microsoft Windows 11 IoT Enterprise LTSC Evaluation'
     }
+
+    It 'rejects unknown status states at creation time' {
+        { New-ScudoStatus -State 'configured' -Summary 'typo' } | Should -Throw
+    }
+
+    It 'reports an advisory when applying Quad9 DNS with no active adapters' -Skip:($env:OS -eq 'Windows_NT') {
+        $result = Set-ScudoQuad9Dns
+
+        $result.State | Should -Be 'advisory'
+        $result.Summary | Should -Be 'No active network adapters found.'
+    }
 }
 
 Describe 'scudo file-backed browser policies' {

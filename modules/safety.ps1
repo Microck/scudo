@@ -135,7 +135,8 @@ function Test-ScudoPendingReboot {
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress',
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending',
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\PostRebootReporting',
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired',
+        'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\PendingFileRenameOperations'
     )
 
     foreach ($path in $paths) {
@@ -208,8 +209,10 @@ function Get-ScudoControlSnapshotPath {
         [string]$BaseDirectory
     )
 
+    $stateDirectory = Get-ScudoStateDirectory -BaseDirectory $BaseDirectory
+    New-Item -Path $stateDirectory -ItemType Directory -Force | Out-Null
     $latestDirectory = Get-ScudoLatestStateDirectory -BaseDirectory $BaseDirectory
-    New-Item -Path $latestDirectory -ItemType Directory -Force | Out-Null
+    New-Item -Path $latestDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
 
     $fileName = '{0}.json' -f (Get-ScudoSafeFileName -Value $ControlId)
     return Join-Path -Path $latestDirectory -ChildPath $fileName
@@ -224,12 +227,12 @@ function Get-ScudoControlSnapshot {
     )
 
     $snapshotPath = Get-ScudoControlSnapshotPath -ControlId $ControlId -BaseDirectory $BaseDirectory
-    if (-not (Test-Path -Path $snapshotPath)) {
+    if (-not (Test-Path -LiteralPath $snapshotPath)) {
         return $null
     }
 
     try {
-        return Get-Content -Path $snapshotPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        return Get-Content -LiteralPath $snapshotPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     }
     catch {
         return $null
@@ -255,8 +258,10 @@ function Save-ScudoOperationState {
 
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $safeControlId = Get-ScudoSafeFileName -Value $Control.Id
+    $stateDirectory = Get-ScudoStateDirectory -BaseDirectory $BaseDirectory
+    New-Item -Path $stateDirectory -ItemType Directory -Force | Out-Null
     $operationsDirectory = Get-ScudoOperationsDirectory -BaseDirectory $BaseDirectory
-    New-Item -Path $operationsDirectory -ItemType Directory -Force | Out-Null
+    New-Item -Path $operationsDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
 
     $payload = [pscustomobject]@{
         formatVersion     = 1
@@ -271,17 +276,17 @@ function Save-ScudoOperationState {
     }
 
     $operationPath = Join-Path -Path $operationsDirectory -ChildPath "$stamp-$safeControlId.json"
-    $payload | ConvertTo-Json -Depth 10 | Set-Content -Path $operationPath -Encoding UTF8
+    $payload | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $operationPath -Encoding UTF8
 
     if ($payload.rollbackSupported -and $Action -eq 'apply' -and $ResultStatus.State -ne 'error') {
         $latestPath = Get-ScudoControlSnapshotPath -ControlId $Control.Id -BaseDirectory $BaseDirectory
-        $payload | ConvertTo-Json -Depth 10 | Set-Content -Path $latestPath -Encoding UTF8
+        $payload | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latestPath -Encoding UTF8
     }
 
     if ($payload.rollbackSupported -and $Action -eq 'rollback' -and $ResultStatus.State -ne 'error') {
         $latestPath = Get-ScudoControlSnapshotPath -ControlId $Control.Id -BaseDirectory $BaseDirectory
-        if (Test-Path -Path $latestPath) {
-            Remove-Item -Path $latestPath -Force
+        if (Test-Path -LiteralPath $latestPath) {
+            Remove-Item -LiteralPath $latestPath -Force
         }
     }
 

@@ -164,6 +164,22 @@ Describe 'scudo entrypoint parsing' {
         $parsed.Gui | Should -BeFalse
         $parsed.Cli | Should -BeFalse
     }
+
+    It 'keeps missing option values as null instead of throwing' {
+        $argumentMap = [ordered]@{
+            'preset'     = 'Preset'
+            'show'       = 'Show'
+            'action'     = 'Action'
+            'control-id' = 'ControlId'
+        }
+
+        foreach ($argumentName in $argumentMap.Keys) {
+            $parsed = Get-ScudoParsedArguments -Arguments @("--$argumentName")
+            $propertyName = $argumentMap[$argumentName]
+
+            $parsed.$propertyName | Should -Be $null
+        }
+    }
 }
 
 Describe 'scudo script invocation' {

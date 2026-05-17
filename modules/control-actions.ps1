@@ -102,6 +102,7 @@ function Test-ScudoWindows11 {
 function New-ScudoStatus {
     param(
         [Parameter(Mandatory)]
+        [ValidateSet('already-configured', 'needs-action', 'pending-reboot', 'advisory', 'unsupported', 'error')]
         [string]$State,
 
         [Parameter(Mandatory)]
@@ -385,7 +386,7 @@ function Get-ScudoStatusQuad9Dns {
     }
 
     $expected = @('9.9.9.9', '149.112.112.112')
-    $aliases = Get-ScudoActiveAdapterAliases
+    $aliases = @(Get-ScudoActiveAdapterAliases)
     if ($aliases.Count -eq 0) {
         return New-ScudoStatus -State 'advisory' -Summary 'No active physical adapters were found.' -Supported $false
     }
@@ -409,7 +410,11 @@ function Get-ScudoStatusQuad9Dns {
 }
 
 function Set-ScudoQuad9Dns {
-    $aliases = Get-ScudoActiveAdapterAliases
+    $aliases = @(Get-ScudoActiveAdapterAliases)
+    if ($aliases.Count -eq 0) {
+        return New-ScudoStatus -State 'advisory' -Summary 'No active network adapters found.'
+    }
+
     $beforeValue = foreach ($alias in $aliases) {
         Get-DnsClientServerAddress -InterfaceAlias $alias -AddressFamily IPv4 -ErrorAction SilentlyContinue
     }
@@ -1147,7 +1152,7 @@ function Install-ScudoWingetPackage {
         return $beforeStatus
     }
 
-    & winget install --exact --id $PackageId --accept-package-agreements --accept-source-agreements --silent
+    & winget install --exact --id $PackageId --source winget --accept-package-agreements --accept-source-agreements --silent
     $afterStatus = Get-ScudoStatusWingetPackage -PackageId $PackageId -Title $Title
 
     return New-ScudoStatus -State $afterStatus.State -Summary "Installed $Title." -BeforeValue $beforeStatus.BeforeValue -AfterValue $afterStatus.BeforeValue

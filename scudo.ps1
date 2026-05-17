@@ -754,6 +754,10 @@ function Invoke-ScudoApplySelection {
             Write-ScudoText 'Username is required.' Red
             return
         }
+        if ($userName -notmatch '^[a-zA-Z0-9._-]{1,20}$') {
+            Write-ScudoText 'Username must be 1-20 characters and contain only letters, numbers, dots, underscores, or hyphens.' Red
+            return
+        }
 
         $password = Read-ScudoInput -Prompt 'Enter the password for the new account' -AsSecureString
         $result = New-ScudoStandardUser -UserName $userName -Password $password
@@ -1508,6 +1512,11 @@ function Show-ScudoPrivacyIdentityPage {
                 $userName = Read-ScudoInput -Prompt 'Enter the new local username'
                 if ([string]::IsNullOrWhiteSpace($userName)) {
                     Write-ScudoText 'Username is required.' Red
+                    Pause-Scudo
+                    continue
+                }
+                if ($userName -notmatch '^[a-zA-Z0-9._-]{1,20}$') {
+                    Write-ScudoText 'Username must be 1-20 characters and contain only letters, numbers, dots, underscores, or hyphens.' Red
                     Pause-Scudo
                     continue
                 }
