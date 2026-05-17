@@ -791,6 +791,10 @@ function Show-ScudoGui {
             if ([string]::IsNullOrWhiteSpace($userName)) {
                 return
             }
+            if ($userName -notmatch '^[a-zA-Z0-9._-]{1,20}$') {
+                & $showMessage 'Username must be 1-20 characters and contain only letters, numbers, dots, underscores, or hyphens.' 'scudo' ([System.Windows.MessageBoxButton]::OK) ([System.Windows.MessageBoxImage]::Error) | Out-Null
+                return
+            }
 
             $passwordText = Show-ScudoTextPrompt -Owner $window -Title 'Create standard user' -Prompt 'Enter the password for the new account' -AsPassword
             if ($null -eq $passwordText) {
