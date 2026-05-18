@@ -10,7 +10,7 @@ Open an issue with:
 - Steps to reproduce
 - Expected vs actual behavior
 
-Do not open issues for Windows Server — scudo intentionally refuses to run on non-Windows 11 systems.
+Do not open issues for Windows Server -- scudo intentionally refuses to run on non-Windows 11 systems.
 
 ## Testing changes
 
@@ -25,7 +25,7 @@ Validate the CLI surface on a real Windows 11 machine or VM before assuming beha
 ## Submitting changes
 
 1. Fork the repo and create a topic branch.
-2. Keep changes targeted — do not refactor unrelated code in the same PR.
+2. Keep changes targeted -- do not refactor unrelated code in the same PR.
 3. Run `pwsh -NoProfile -Command "Invoke-Pester ./tests/"` and confirm all tests pass.
 4. Do not add dependencies without discussion.
 5. Follow the existing style: lowercase command names, sentence-case descriptions.
@@ -33,9 +33,9 @@ Validate the CLI surface on a real Windows 11 machine or VM before assuming beha
 
 ## Code structure
 
-- `scudo.ps1` — entrypoint and orchestration
-- `modules/entrypoint.ps1` — CLI argument parsing and menu routing
-- `modules/control-catalog.ps1` — all hardening controls with metadata
-- `gui/` — WPF UI definitions
+- `scudo.ps1` -- entrypoint and orchestration
+- `modules/entrypoint.ps1` -- CLI argument parsing and menu routing
+- `modules/control-catalog.ps1` -- all hardening controls with metadata
+- `gui/` -- WPF UI definitions
 
 Control descriptions in the README should match the `WhatItDoes`, `WhyApply`, `WhyNotApply` fields in the catalog. If you add or rename a control, update both.

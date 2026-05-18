@@ -8,19 +8,19 @@
 
 ## Context
 
-Scudo applies system-level security hardening controls that modify the Windows registry, Group Policy settings, Windows Defender configuration, and firewall rules. Users need the ability to undo these changes — either to revert a specific control or to restore the system to its pre-hardening state.
+Scudo applies system-level security hardening controls that modify the Windows registry, Group Policy settings, Windows Defender configuration, and firewall rules. Users need the ability to undo these changes -- either to revert a specific control or to restore the system to its pre-hardening state.
 
 The rollback system must handle:
 - Controls that modify registry values (e.g., enabling Credential Guard, configuring ASR rules).
-- Controls with diverse state representations — some are boolean registry keys, others are multi-value policies or Defender preferences.
+- Controls with diverse state representations -- some are boolean registry keys, others are multi-value policies or Defender preferences.
 - Selective rollback of individual controls, not just full-system restore.
 - Persistent state that survives reboots and tool restarts.
 
 Two broad approaches were considered:
 
-1. **Filesystem-based JSON snapshots** — Before applying each control, capture the control's current state as a JSON file on disk. Rollback reads the snapshot and restores the recorded values.
-2. **Registry backup (`.reg` export)** — Use `reg.exe export` or PowerShell registry drives to dump affected registry keys to `.reg` files before modification. Rollback re-imports the `.reg` file.
-3. **System Restore points** — Leverage Windows System Restore (`Checkpoint-Computer`) to create restore points before applying controls.
+1. **Filesystem-based JSON snapshots** -- Before applying each control, capture the control's current state as a JSON file on disk. Rollback reads the snapshot and restores the recorded values.
+2. **Registry backup (`.reg` export)** -- Use `reg.exe export` or PowerShell registry drives to dump affected registry keys to `.reg` files before modification. Rollback re-imports the `.reg` file.
+3. **System Restore points** -- Leverage Windows System Restore (`Checkpoint-Computer`) to create restore points before applying controls.
 
 ## Decision
 
@@ -44,15 +44,15 @@ System Restore was rejected because it captures the entire system state (not per
 ## Consequences
 
 **Positive:**
-- Rollback is granular — individual controls can be reversed without affecting others.
+- Rollback is granular -- individual controls can be reversed without affecting others.
 - Snapshots capture arbitrary state representations (registry values, Defender configurations, policy settings) in a uniform JSON format.
 - The operations log provides a complete audit trail of all apply and rollback actions with timestamps.
 - No dependency on `reg.exe`, System Restore, or external backup tools.
-- Snapshots are stored in the user's Documents folder — visible, inspectable, and easy to back up manually.
+- Snapshots are stored in the user's Documents folder -- visible, inspectable, and easy to back up manually.
 
 **Negative:**
 - Rollback is only available for controls that explicitly implement a `RollbackFunction`. Controls without rollback support (e.g., firmware-level changes) cannot be automatically reversed.
-- Snapshots capture the state as reported by each control's check function — if the check function has a bug or misses a side effect, rollback may be incomplete.
-- Filesystem-based state is vulnerable to user deletion or corruption — if a snapshot file is removed, rollback information is lost.
-- The snapshot represents the last apply operation only — there is no stack of historical states to roll back through multiple apply/rollback cycles (though the operations log preserves the history for manual review).
-- No transactional guarantees — if a control partially applies (e.g., sets 3 of 5 registry keys before failing), the snapshot records the pre-apply state, but rollback may not correctly handle the partially-applied intermediate state.
+- Snapshots capture the state as reported by each control's check function -- if the check function has a bug or misses a side effect, rollback may be incomplete.
+- Filesystem-based state is vulnerable to user deletion or corruption -- if a snapshot file is removed, rollback information is lost.
+- The snapshot represents the last apply operation only -- there is no stack of historical states to roll back through multiple apply/rollback cycles (though the operations log preserves the history for manual review).
+- No transactional guarantees -- if a control partially applies (e.g., sets 3 of 5 registry keys before failing), the snapshot records the pre-apply state, but rollback may not correctly handle the partially-applied intermediate state.

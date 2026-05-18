@@ -131,8 +131,8 @@ guided mode walks the catalog section by section and keeps the manual items visi
 
 guided covers controls that require manual action or firmware access:
 
-- **firmware** — bios-password, secure-boot, kernel-dma-protection, firmware.reboot-to-uefi
-- **identity** — account.create-standard-user, account.standard-user, password-manager
+- **firmware** -- bios-password, secure-boot, kernel-dma-protection, firmware.reboot-to-uefi
+- **identity** -- account.create-standard-user, account.standard-user, password-manager
 
 ## controls
 

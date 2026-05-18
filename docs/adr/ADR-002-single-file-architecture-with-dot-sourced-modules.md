@@ -28,9 +28,9 @@ These modules are loaded at the top of `scudo.ps1` using PowerShell's dot-sourci
 ```
 
 Alternatives considered:
-1. **PowerShell modules (`.psm1` / `.psd1`)** — Formal module system with explicit exports, versioning, and `Import-Module`.
-2. **Monolithic single file** — All code in one `.ps1` file with no modular separation.
-3. **Binary module (C# compiled)** — A compiled DLL exposing PowerShell cmdlets.
+1. **PowerShell modules (`.psm1` / `.psd1`)** -- Formal module system with explicit exports, versioning, and `Import-Module`.
+2. **Monolithic single file** -- All code in one `.ps1` file with no modular separation.
+3. **Binary module (C# compiled)** -- A compiled DLL exposing PowerShell cmdlets.
 
 ## Decision
 
@@ -38,7 +38,7 @@ We use dot-sourced script files organized in a `modules/` directory rather than 
 
 The primary motivation is **deployment simplicity and discoverability**. Scudo is distributed as a single directory that users clone or download. Dot-sourcing ensures all functions are loaded into the caller's scope with no module path configuration, no `Install-Module` step, and no `PSModulePath` manipulation. A user runs `.\scudo.ps1` and everything works.
 
-Formal PowerShell modules introduce infrastructure overhead — manifest files (`.psd1`), module versioning semantics, `PSModulePath` requirements, and a publishing workflow — that provide no meaningful benefit for a self-contained tool that is not published to the PowerShell Gallery.
+Formal PowerShell modules introduce infrastructure overhead -- manifest files (`.psd1`), module versioning semantics, `PSModulePath` requirements, and a publishing workflow -- that provide no meaningful benefit for a self-contained tool that is not published to the PowerShell Gallery.
 
 The module files provide **logical separation of concerns** (safety checks vs. catalog definitions vs. reporting) without the ceremony of the formal module system. Functions share a single scope, which simplifies cross-module calls (e.g., `safety.ps1` functions call `control-actions.ps1` functions like `Test-ScudoWindows` without import boilerplate).
 
@@ -47,15 +47,15 @@ A monolithic single file was rejected because the combined codebase (~3400 lines
 ## Consequences
 
 **Positive:**
-- Zero-configuration deployment — clone and run, no module installation or path setup required.
+- Zero-configuration deployment -- clone and run, no module installation or path setup required.
 - Flat function scope allows direct cross-module calls without `Import-Module` or `using module` statements.
 - Users can easily inspect individual module files to understand what a specific subsystem does.
 - Adding a new module is as simple as creating a `.ps1` file and adding one dot-source line to `scudo.ps1`.
 - No module manifest maintenance, no versioning ceremony for an unreleased library.
 
 **Negative:**
-- No encapsulation — all functions from all modules are visible in the global session scope, increasing the risk of name collisions with user-defined functions.
-- No explicit export control — PowerShell modules allow `Export-ModuleMember` to define a public API surface; dot-sourcing exposes everything.
+- No encapsulation -- all functions from all modules are visible in the global session scope, increasing the risk of name collisions with user-defined functions.
+- No explicit export control -- PowerShell modules allow `Export-ModuleMember` to define a public API surface; dot-sourcing exposes everything.
 - Testing requires loading all modules together rather than testing individual modules in isolation (though the current test suite handles this by dot-sourcing the same files).
-- Module load order matters — if a function in `safety.ps1` depends on a function from `control-actions.ps1`, the latter must be dot-sourced first. This is managed by explicit ordering in `scudo.ps1` but is fragile under refactoring.
+- Module load order matters -- if a function in `safety.ps1` depends on a function from `control-actions.ps1`, the latter must be dot-sourced first. This is managed by explicit ordering in `scudo.ps1` but is fragile under refactoring.
 - No built-in module versioning or dependency management.
